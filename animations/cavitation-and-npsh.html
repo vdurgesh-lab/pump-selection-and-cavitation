@@ -1,0 +1,769 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Cavitation and NPSH</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout concept: a pump test bench. Rig and pressure trace on the left, the manufacturer's stacked curve sheet on the right, shared controls beneath, then the textbook notes. */
+:root{
+  --bg:#E8EDEF; --panel:#F7F9F9; --ink:#13262E; --muted:#55686F; --grid:#CBD6DA; --rule:#A9B8BE;
+  --water:#3B97C6; --water-deep:#1F6E99; --flow:#E3F5FC; --steel:#71828A; --steel-dark:#3F4F56;
+  --a:#0A78A3; --r:#C63D1A; --hot:#E2481C; --ok:#1F8158; --warn:#A87406; --vapor:#FFFFFF; --sys:#6A4FA0;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1A1F; --panel:#15252B; --ink:#E4EEF1; --muted:#95A9AF; --grid:#2A3E46; --rule:#3C535C;
+  --water:#2A7EAB; --water-deep:#185676; --flow:#CFEFFB; --steel:#7F929A; --steel-dark:#A5B5BB;
+  --a:#55BFE5; --r:#FF7F52; --hot:#FF6B3D; --ok:#4FC492; --warn:#E4B04A; --vapor:#FFFFFF; --sys:#B39DE6;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1A1F; --panel:#15252B; --ink:#E4EEF1; --muted:#95A9AF; --grid:#2A3E46; --rule:#3C535C;
+  --water:#2A7EAB; --water-deep:#185676; --flow:#CFEFFB; --steel:#7F929A; --steel-dark:#A5B5BB;
+  --a:#55BFE5; --r:#FF7F52; --hot:#FF6B3D; --ok:#4FC492; --warn:#E4B04A; --vapor:#FFFFFF; --sys:#B39DE6;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55}
+.wrap{max-width:1280px;margin:0 auto;padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+.wrap>*{min-width:0}
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.05;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.2rem,5vw,3.5rem);letter-spacing:.005em}
+h2{font-size:clamp(1.6rem,3vw,2.15rem)}
+h3{font-size:1.25rem;font-weight:600}
+p{margin:0}
+.eyebrow,.fig-title,.lbl{font-family:var(--display);font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-size:.86rem;color:var(--muted)}
+header{display:grid;gap:8px}
+.lede{max-width:68ch;font-size:1.1rem}
+sub,sup{font-size:.72em;line-height:0}
+.m{font-style:italic;white-space:nowrap}
+
+/* tour */
+.tour{background:var(--panel);border:1px solid var(--rule);display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px 16px;padding:14px 16px;align-items:start}
+.transport{display:flex;gap:6px}
+button{font-family:var(--display);font-weight:600;font-size:.98rem;letter-spacing:.03em;color:var(--ink);background:transparent;border:1px solid var(--rule);padding:6px 12px;cursor:pointer;border-radius:2px}
+button:hover{border-color:var(--ink)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+#play{background:var(--ink);color:var(--panel);border-color:var(--ink);min-width:74px}
+.pills{display:flex;gap:4px;overflow-x:auto;scrollbar-width:thin;padding-bottom:3px}
+.pills button{white-space:nowrap;font-size:.9rem;padding:5px 9px;position:relative;font-variant-numeric:tabular-nums;flex:none;color:var(--muted)}
+.pills button[aria-current="true"]{color:var(--ink);border-color:var(--ink);font-weight:700}
+.pills i{position:absolute;left:0;bottom:0;height:2px;background:var(--hot);width:0}
+#motionNote{grid-column:1/-1;font-family:var(--display);font-weight:600;font-size:1.05rem;color:var(--hot)}
+.cap{grid-column:1/-1;min-height:6em;display:grid;gap:4px;align-content:start}
+.cap p{max-width:105ch}
+
+/* rig */
+.rig{display:grid;gap:14px;grid-template-columns:minmax(0,1.14fr) minmax(0,1fr);grid-template-rows:auto auto}
+fig,figure{margin:0;background:var(--panel);border:1px solid var(--rule);padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.box{position:relative;width:100%;max-width:100%}
+.box canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#sceneBox{aspect-ratio:720/430}
+#stripBox{height:232px}
+#curvesFig{grid-column:2;grid-row:1/3}
+#curvesBox{flex:1;min-height:520px}
+
+.read{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.read>div{background:var(--panel);padding:9px 12px;display:grid;gap:1px;min-width:0}
+.read b{font-family:var(--mono);font-weight:500;font-size:1.28rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.read small{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+#statusCell{grid-column:span 2}
+#status{font-family:var(--display);font-weight:700;font-size:1.3rem;line-height:1.1}
+#status[data-s="ok"]{color:var(--ok)}#status[data-s="warn"]{color:var(--warn)}#status[data-s="bad"]{color:var(--hot)}
+
+.ctl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:14px 22px;background:var(--panel);border:1px solid var(--rule);padding:12px 16px;align-items:end}
+.ctl>div{display:grid;gap:3px;min-width:0}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-family:var(--display);font-weight:600;font-size:1rem}
+.ctl output{font-family:var(--mono);font-weight:400;font-size:.88rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+input[type=range]{width:100%;accent-color:var(--a);margin:4px 0 0}
+.ctl small{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+
+.eq{font-family:var(--mono);font-size:.93rem;background:var(--panel);border:1px solid var(--rule);padding:10px 14px;overflow-x:auto;white-space:nowrap}
+.eq b{color:var(--a);font-weight:500}
+
+/* notes */
+.notes{display:grid;gap:40px;margin-top:22px}
+section{display:grid;gap:14px;min-width:0}
+section>p{max-width:72ch}
+.twin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+.twin>*{min-width:0;display:grid;gap:8px;align-content:start}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.97rem;min-width:600px}
+th{font-family:var(--display);font-weight:600;text-align:left;font-size:1.02rem;border-bottom:2px solid var(--ink);padding:6px 14px 6px 0;vertical-align:bottom}
+td{border-bottom:1px solid var(--rule);padding:8px 14px 8px 0;vertical-align:top}
+td:first-child{font-family:var(--display);font-weight:600;font-size:1.02rem;white-space:nowrap}
+.th-a{color:var(--a)}.th-r{color:var(--r)}
+.formula{font-family:var(--mono);font-size:.95rem;background:var(--panel);border:1px solid var(--rule);padding:10px 14px;overflow-x:auto;white-space:nowrap}
+#microBox{aspect-ratio:560/290}
+.stages{display:grid;gap:0;list-style:none;margin:0;padding:0}
+.stages li{padding:8px 0 8px 12px;border-left:3px solid var(--grid);transition:border-color .15s}
+.stages li.on{border-left-color:var(--hot)}
+.stages b{font-family:var(--display);font-weight:600;font-size:1.08rem;display:block;line-height:1.2}
+ul.plain{margin:0;padding:0 0 0 1.1em;display:grid;gap:6px}
+.calc{font-family:var(--mono);font-size:.9rem;display:grid;gap:3px;background:var(--panel);border:1px solid var(--rule);padding:12px 14px;overflow-x:auto}
+.calc div{white-space:nowrap}
+.fine{font-size:.88rem;color:var(--muted);max-width:90ch;border-top:1px solid var(--rule);padding-top:12px}
+
+@media (max-width:980px){
+  .rig{grid-template-columns:minmax(0,1fr);grid-template-rows:none}
+  #curvesFig{grid-column:auto;grid-row:auto}
+  .read{grid-template-columns:repeat(4,minmax(0,1fr))}
+  #statusCell{grid-column:1/-1}
+  .ctl{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ctl>button{grid-column:1/-1}
+}
+@media (max-width:680px){
+  .twin{grid-template-columns:minmax(0,1fr)}
+  .tour{grid-template-columns:minmax(0,1fr)}
+  .cap{min-height:11.5em}
+  .ctl{grid-template-columns:minmax(0,1fr)}
+  .read{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .read b{font-size:1.08rem}
+  .read>div{padding:8px}
+  #curvesBox{min-height:500px}
+}
+</style>
+
+<main class="wrap">
+  <header>
+    <div class="eyebrow">Thermal fluids · Centrifugal pumps</div>
+    <h1>Cavitation: boiling water inside a cold pump</h1>
+    <p class="lede">A pump pulls its inlet pressure down. If the pressure anywhere inside falls to the water's vapor pressure, the water boils, and the bubbles then implode against the impeller. NPSH is how we check that this will not happen.</p>
+  </header>
+
+  <div class="tour">
+    <div class="transport">
+      <button id="play" type="button">Pause</button>
+      <button id="prev" type="button" aria-label="Previous step">←</button>
+      <button id="next" type="button" aria-label="Next step">→</button>
+    </div>
+    <div class="pills" id="pills"></div>
+    <p id="motionNote" hidden>Your device is set to reduce motion, so the animation waits for you. Press Play to run it.</p>
+    <div class="cap" aria-live="off"><h2 id="capT"></h2><p id="capP"></p></div>
+  </div>
+
+  <div class="rig">
+    <figure>
+      <div class="fig-title">Pump rig</div>
+      <div class="box" id="sceneBox"><canvas id="scene" role="img" aria-label="Animated cross-section of a suction tank, pipe, centrifugal pump and discharge valve. Vapor bubbles form at the impeller eye and collapse along the vanes when suction head is too low."></canvas></div>
+    </figure>
+    <figure id="curvesFig">
+      <div class="fig-title">Pump curve sheet</div>
+      <div class="box" id="curvesBox"><canvas id="curves" role="img" aria-label="Stacked pump curves against flow rate. The top panel shows head, system curve and efficiency. The bottom panel shows NPSH available falling and NPSH required rising, crossing where the head curve breaks down."></canvas></div>
+    </figure>
+    <figure>
+      <div class="fig-title">Absolute pressure along the flow path</div>
+      <div class="box" id="stripBox"><canvas id="strip" role="img" aria-label="Line chart of absolute head from tank surface through the suction pipe and pump. Head falls through the pipe, dips further inside the pump and then rises. The dip must stay above the vapor pressure line."></canvas></div>
+    </figure>
+  </div>
+
+  <div class="read" aria-label="Live readings">
+    <div id="statusCell"><span class="lbl">Pump condition</span><span id="status" data-s="ok">No bubbles</span></div>
+    <div><span class="lbl">Flow</span><b id="rQ">–</b><small>m³/h</small></div>
+    <div><span class="lbl">Head</span><b id="rH">–</b><small id="rHs">m</small></div>
+    <div><span class="lbl">NPSHa / NPSHr</span><b id="rN">–</b><small id="rNs">m</small></div>
+    <div><span class="lbl">Margin ratio</span><b id="rR">–</b><small>NPSHa ÷ NPSHr</small></div>
+  </div>
+
+  <div class="ctl">
+    <div><label for="sV">Discharge valve <output id="oV"></output></label><input id="sV" type="range" min="5" max="100" step="1"><small>sets flow, moves along the curves</small></div>
+    <div><label for="sZ">Tank level above pump <output id="oZ"></output></label><input id="sZ" type="range" min="-8" max="4" step="0.1"><small>negative means suction lift</small></div>
+    <div><label for="sT">Water temperature <output id="oT"></output></label><input id="sT" type="range" min="10" max="95" step="1"><small>sets vapor pressure</small></div>
+    <div><label for="sC">Strainer clogging <output id="oC"></output></label><input id="sC" type="range" min="0" max="100" step="1"><small>adds suction-line loss</small></div>
+    <button id="reset" type="button">Replace impeller</button>
+  </div>
+
+  <div class="eq" id="eq" aria-label="Live NPSH available calculation"></div>
+
+  <div class="notes">
+    <section>
+      <h2>Two numbers, one question</h2>
+      <p>Both quantities are heads in metres of the liquid being pumped. They answer one question: does the water arrive with more pressure above boiling than the pump will take away?</p>
+      <div class="formula">NPSH<sub>a</sub> = p<sub>s</sub>/ρg + z − h<sub>f</sub> − p<sub>v</sub>/ρg &nbsp;&nbsp; must exceed &nbsp;&nbsp; NPSH<sub>r</sub>(Q) + margin</div>
+      <div class="tw"><table>
+        <thead><tr><th></th><th class="th-a">NPSH available (NPSHa)</th><th class="th-r">NPSH required (NPSHr)</th></tr></thead>
+        <tbody>
+          <tr><td>Belongs to</td><td>The system: tank, pipe, liquid</td><td>The pump: its speed and inlet geometry</td></tr>
+          <tr><td>Meaning</td><td>Absolute head at the inlet flange, above vapor head</td><td>Inlet head the pump needs, from its own test</td></tr>
+          <tr><td>Source</td><td>You calculate it</td><td>The manufacturer's curve</td></tr>
+          <tr><td>As flow rises</td><td>Falls, because friction grows with Q²</td><td>Rises, because inlet velocities grow with Q</td></tr>
+          <tr><td>Changes with</td><td>Tank pressure and level, temperature, altitude, pipe losses</td><td>Speed (about N²), impeller eye design, inducers</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>NPSHr is not the point where cavitation starts</h2>
+      <div class="twin">
+        <div><p>Vendors test by holding flow constant and lowering suction pressure until head falls 3%. That value is the NPSH3 printed on the curve as NPSHr. Enough vapor to cost 3% of head means bubbles have been forming for some time.</p></div>
+        <div><p>First bubbles appear at the higher incipient value, NPSHi, often 2 to 5 times NPSH3 at design flow, and more on high-energy pumps. This is why Hydraulic Institute guidance asks for an NPSHa/NPSHr ratio above 1, commonly about 1.1 to 2.5 depending on suction energy and service.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Why a collapsing bubble hurts</h2>
+      <div class="twin">
+        <figure>
+          <div class="fig-title">One bubble at a vane surface</div>
+          <div class="box" id="microBox"><canvas id="micro" role="img" aria-label="Animation of a vapor bubble growing in low pressure, drifting into high pressure, collapsing around a liquid jet, and striking the metal surface to leave a pit."></canvas></div>
+        </figure>
+        <div>
+          <ol class="stages" id="stages">
+            <li><b>Grows</b>Local pressure is below vapor pressure, so liquid flashes to vapor.</li>
+            <li><b>Travels</b>The flow carries the bubble toward the vane tips, where pressure is higher.</li>
+            <li><b>Collapses</b>Vapor condenses at once. The side away from the wall caves in first and forms a jet.</li>
+            <li><b>Strikes</b>The jet and shock wave hit the metal. Thousands of hits per second fatigue the surface into pits.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="twin">
+        <div class="calc" aria-label="Collapse time estimate">
+          <div class="lbl">Collapse time, Rayleigh estimate</div>
+          <div>t ≈ 0.915 R √(ρ/Δp)</div>
+          <div>R = 1 mm, Δp = 300 kPa</div>
+          <div>t ≈ 0.915 × 10⁻³ × √(1000 / 300000) ≈ 53 µs</div>
+        </div>
+        <div class="calc" aria-label="Jet impact pressure estimate">
+          <div class="lbl">Jet impact, water-hammer estimate</div>
+          <div>p ≈ ρ c v</div>
+          <div>v ≈ 100 m/s (order of magnitude), c ≈ 1480 m/s</div>
+          <div>p ≈ 1000 × 1480 × 100 ≈ 150 MPa</div>
+        </div>
+      </div>
+      <p>150 MPa is the same order as the strength of cast iron and bronze impellers, delivered to a spot microns across, again and again.</p>
+    </section>
+
+    <section>
+      <h2>How bad it gets</h2>
+      <div class="tw"><table>
+        <thead><tr><th>Effect</th><th>What you notice</th><th>What it costs</th></tr></thead>
+        <tbody>
+          <tr><td>Lost performance</td><td>Head and flow fall or hunt; opening the valve no longer adds flow</td><td>Process shortfall and wasted energy; vapor can block the passages entirely</td></tr>
+          <tr><td>Noise</td><td>A crackle like gravel going through the pump, loudest near the suction side</td><td>A warning sign that damage is under way</td></tr>
+          <tr><td>Vibration</td><td>Broadband shaking from uneven vapor in the passages</td><td>Shorter bearing and mechanical seal life, shaft fatigue</td></tr>
+          <tr><td>Erosion</td><td>Sponge-like pitting on the suction side of the vanes, near the inlet</td><td>Falling efficiency, imbalance, and eventual impeller replacement</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section>
+      <h2>Worked check</h2>
+      <p>Same pump and pipe as the rig above. Water at 60 °C from an open tank with its surface 3 m below the pump, at Q = 100 m³/h.</p>
+      <div class="calc">
+        <div>p<sub>v</sub> = 19.9 kPa, ρ = 983 kg/m³, ρg = 9645 N/m³</div>
+        <div>(p<sub>atm</sub> − p<sub>v</sub>)/ρg = (101.3 − 19.9) × 1000 / 9645 = 8.44 m</div>
+        <div>NPSHa = 8.44 − 3.00 − h<sub>f</sub>(1.20) = 4.24 m</div>
+        <div>NPSHr at 100 m³/h = 4.50 m &nbsp; ratio = 0.94</div>
+        <div>Not acceptable: the pump is past its 3% head-loss point.</div>
+      </div>
+      <p>Lowering the pump 2 m gives NPSHa = 6.24 m and a ratio of 1.39. Note that this water would be fine at 25 °C: the same suction arrangement gives NPSHa = 5.84 m, a ratio of 1.30.</p>
+    </section>
+
+    <section>
+      <h2>How to stop it</h2>
+      <div class="twin">
+        <div><h3 class="th-a">Raise NPSHa</h3>
+          <ul class="plain">
+            <li>Raise the tank level or lower the pump</li>
+            <li>Use a larger, shorter suction line with fewer fittings</li>
+            <li>Clean strainers and keep suction valves fully open</li>
+            <li>Cool the liquid, or pressurize the tank</li>
+          </ul></div>
+        <div><h3 class="th-r">Lower NPSHr</h3>
+          <ul class="plain">
+            <li>Reduce flow by throttling the discharge, never the suction</li>
+            <li>Slow the pump with a drive: NPSHr falls roughly with N²</li>
+            <li>Pick a pump with a larger eye or double suction</li>
+            <li>Add an inducer ahead of the impeller</li>
+          </ul></div>
+      </div>
+    </section>
+
+    <p class="fine">The rig uses an illustrative pump: H = 40 − 0.0008Q², NPSH3 = 1.5 + 0.0003Q², best efficiency at 110 m³/h, with Q in m³/h. Vapor pressure comes from the Antoine equation. Tank pressure is 101.3 kPa. NPSHi is set to 1.5 × NPSH3 for simplicity, and head breakdown below NPSH3 is a fitted shape. Low-flow recirculation cavitation, which also occurs in real pumps, is not modelled. The impeller is slowed and pit counts are illustrative. Use the manufacturer's curves for real design work.</p>
+  </div>
+</main>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const clamp = (x,a,b) => Math.min(b,Math.max(a,x));
+const lerp = (a,b,t) => a+(b-a)*t;
+const frac = x => x-Math.floor(x);
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- physics ---------- */
+const QMAX=200, BEP=110, NPSHI=1.5, Zd=10, g=9.81;
+const Hclean=Q=>40-.0008*Q*Q;
+const n3=Q=>1.5+.0003*Q*Q;
+const eta=Q=>Math.max(0,.78*(1-((Q-BEP)/BEP)**2));
+const pvap=T=>10**(8.07131-1730.63/(233.426+T))*.133322; // kPa
+const rhoW=T=>1000*(1-(T+288.9414)/(508929.2*(T+68.12963))*(T-3.9863)**2);
+const fHead=r=>r>=1?1-.03*Math.exp(-6*(r-1)):Math.max(0,.97-1.4*(1-r)-4*(1-r)**2);
+function solve(s){
+  const rho=rhoW(s.T), pv=pvap(s.T), Hatm=101325/(rho*g), Hv=pv*1000/(rho*g);
+  const ks=.00012+.0006*s.clog, K=.00014+ks+.00015/(s.phi*s.phi), Hst=Zd-s.z, a0=Hatm+s.z-Hv;
+  const na=Q=>a0-ks*Q*Q;
+  const Hact=Q=>Hclean(Q)*fHead(na(Q)/n3(Q));
+  const sys=Q=>Hst+K*Q*Q;
+  let Q=0;
+  if(Hact(0)>Hst){let lo=0,hi=QMAX;for(let i=0;i<40;i++){const m=(lo+hi)/2;if(Hact(m)>sys(m))lo=m;else hi=m}Q=lo}
+  const qc=a0>1.5?Math.sqrt((a0-1.5)/(ks+.0003)):0;
+  const NA=na(Q), NR=n3(Q), r=NA/NR;
+  const sev=Math.pow(clamp((NPSHI-r)/.75,0,1),1.2);
+  return {...s,rho,pv,Hatm,Hv,ks,K,Hst,a0,na,Hact,sys,Q,H:Hact(Q),Hc:Hclean(Q),NA,NR,r,sev,qc,hf:ks*Q*Q};
+}
+
+/* ---------- tour ---------- */
+const f1=x=>x.toFixed(1), f0=x=>x.toFixed(0);
+const Chapters=[
+ {pill:'Healthy',phi:.30,T:25,z:-1,clog:0,title:'A healthy pump has head to spare',
+  text:m=>`The valve is throttled and the pump runs near best efficiency. Water reaches the inlet flange with ${f1(m.NA)} m of head above its boiling point, and the pump needs ${f1(m.NR)} m. On the lower chart, the blue NPSHa line sits well above the red NPSHr line.`},
+ {pill:'The dip',phi:.30,T:25,z:-1,clog:0,title:'Pressure keeps falling just inside the pump',
+  text:m=>`Water speeds up entering the eye and bends around the vane inlets, so pressure drops below its flange value. That dip in the pressure trace is the danger point. If it reaches vapor pressure, water boils, even at ${f0(m.T)} °C.`},
+ {pill:'Open valve',phi:.42,T:25,z:-1,clog:0,title:'Open the valve and the margin shrinks',
+  text:m=>`Flow rises to ${f0(m.Q)} m³/h. Suction friction grows with Q², so NPSHa falls. Faster flow deepens the dip, so NPSHr rises. The first bubbles appear here, before the lines cross and before the head curve shows any change.`},
+ {pill:'Crossing',phi:.52,T:25,z:-1,clog:0,title:'Where the lines cross, head is already down 3%',
+  text:m=>`NPSHa meets NPSHr at about ${f0(m.Q)} m³/h. By test standard, NPSHr is the suction head at which vapor has cut pump head by 3%. It marks cavitation that is well developed, so treat it as a limit to stay clear of.`},
+ {pill:'Breakdown',phi:1,T:25,z:-1,clog:0,title:'Past the crossing, the head curve falls away',
+  text:m=>`The valve is now fully open, yet flow only reaches ${f0(m.Q)} m³/h. Vapor is blocking the impeller passages. Head is ${f1(m.H)} m, against the ${f1(m.Hc)} m the clean curve promises at this flow.`},
+ {pill:'Damage',phi:1,T:25,z:-1,clog:0,title:'Every collapsing bubble hits the metal',
+  text:()=>`Bubbles ride outward into higher pressure and implode against the vanes. Watch pits build up on the impeller and the rig start to shake. The close-up further down shows what each collapse does.`},
+ {pill:'Hot water',phi:.30,T:80,z:-1,clog:0,title:'Hot water cavitates at a flow that was safe',
+  text:m=>`Same valve setting as the healthy start. At ${f0(m.T)} °C the vapor pressure is ${f0(m.pv)} kPa, so the whole NPSHa line drops about ${f1(solve({phi:.3,T:25,z:-1,clog:0}).a0-m.a0)} m. NPSHr stays put because the pump has not changed.`},
+ {pill:'Dirty strainer',phi:.30,T:25,z:-1,clog:1,title:'A clogged strainer does the same job',
+  text:m=>`Extra suction loss makes the NPSHa line fall much faster with flow. The crossing moves left to ${f0(m.qc)} m³/h, so the pump is now cavitating at a flow it handled easily with a clean strainer.`},
+ {pill:'The fix',phi:.30,T:25,z:3,clog:0,title:'Raise the suction level and the margin returns',
+  text:m=>`With the water surface 3 m above the pump, the NPSHa line rises 4 m compared with the start. The ratio is now ${m.r.toFixed(1)}, the crossing has moved past ${f0(m.qc)} m³/h, and no bubbles form.`},
+];
+const CH_TIME=9.5;
+const cur={phi:Chapters[0].phi,T:Chapters[0].T,z:Chapters[0].z,clog:Chapters[0].clog};
+const tgt={...cur};
+let ch=0, chT=0, playing=!reduced, free=false, anim=!reduced;
+const pills=$('pills');
+Chapters.forEach((c,i)=>{const b=document.createElement('button');b.type='button';b.innerHTML=`${i+1} ${c.pill}<i></i>`;b.onclick=()=>goto(i,true);pills.appendChild(b)});
+function setCaption(){
+  const c=Chapters[ch];
+  $('capT').textContent=c.title;
+  $('capP').textContent=c.text(solve({phi:c.phi,T:c.T,z:c.z,clog:c.clog}));
+  [...pills.children].forEach((b,i)=>{b.setAttribute('aria-current',i===ch&&!free?'true':'false');b.firstElementChild.style.width='0'});
+  const act=pills.children[ch];
+  if(pills.scrollWidth>pills.clientWidth)pills.scrollLeft=act.offsetLeft-pills.offsetLeft-40;
+}
+function goto(i,user){
+  ch=clamp(i,0,Chapters.length-1);chT=0;free=false;
+  const c=Chapters[ch];Object.assign(tgt,{phi:c.phi,T:c.T,z:c.z,clog:c.clog});
+  if(!anim)Object.assign(cur,tgt);
+  setCaption();syncSliders();
+  if(user&&!reduced&&!playing){}
+}
+function setPlay(p){playing=p;if(reduced)anim=p;$('play').textContent=p?'Pause':'Play';$('motionNote').hidden=!(reduced&&!p)}
+$('play').onclick=()=>{ if(!playing&&free){free=false;goto(ch)} if(!playing&&ch===Chapters.length-1&&chT>=CH_TIME){goto(0)} setPlay(!playing) };
+$('prev').onclick=()=>goto(ch-1,true);
+$('next').onclick=()=>goto(ch+1,true);
+$('reset').onclick=()=>{pits.length=0};
+
+const sliders=[['sV','phi',v=>v/100,v=>v*100,v=>f0(v*100)+'%','oV'],['sZ','z',v=>+v,v=>v,v=>(v>=0?'+':'−')+Math.abs(v).toFixed(1)+' m','oZ'],['sT','T',v=>+v,v=>v,v=>f0(v)+' °C','oT'],['sC','clog',v=>v/100,v=>v*100,v=>f0(v*100)+'%','oC']];
+sliders.forEach(([id,k,from])=>{
+  $(id).addEventListener('input',e=>{
+    const v=from(e.target.value);cur[k]=v;tgt[k]=v;
+    Object.keys(cur).forEach(q=>tgt[q]=cur[q]);
+    if(!free){free=true;setPlay(false);
+      $('capT').textContent='Free play';
+      $('capP').textContent='You are driving. Watch the operating point move on the curves and the dip move on the pressure trace. Choose any numbered step to return to the walkthrough.';
+      [...pills.children].forEach(b=>{b.setAttribute('aria-current','false');b.firstElementChild.style.width='0'});
+    }
+    syncSliders(id);
+  });
+});
+function syncSliders(skip){sliders.forEach(([id,k,,to,fmt,o])=>{if(id!==skip)$(id).value=to(cur[k]);$(o).textContent=fmt(cur[k])})}
+
+/* ---------- colours ---------- */
+let C={};
+function readTokens(){const cs=getComputedStyle(document.documentElement);['bg','panel','ink','muted','grid','rule','water','water-deep','flow','steel','steel-dark','a','r','hot','ok','warn','vapor','sys'].forEach(k=>C[k]=cs.getPropertyValue('--'+k).trim())}
+readTokens();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',readTokens);
+new MutationObserver(readTokens).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+const hex=c=>{const n=parseInt(c.slice(1),16);return[n>>16&255,n>>8&255,n&255]};
+const mix=(a,b,t)=>{const A=hex(a),B=hex(b);return`rgb(${A.map((v,i)=>Math.round(lerp(v,B[i],t))).join(',')})`};
+const alpha=(c,a)=>{const A=hex(c);return`rgba(${A[0]},${A[1]},${A[2]},${a})`};
+
+/* ---------- canvas helpers ---------- */
+const FD='"Barlow Condensed","Arial Narrow",Arial,sans-serif', FM='"IBM Plex Mono",ui-monospace,Menlo,monospace';
+function surf(id){const cv=$(id);const o={cv,ctx:cv.getContext('2d'),W:0,H:0,dirty:true};new ResizeObserver(()=>o.dirty=true).observe(cv.parentElement);return o}
+function fit(o){if(!o.dirty)return;const r=o.cv.parentElement.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);o.W=Math.max(1,r.width);o.H=Math.max(1,r.height);o.cv.width=Math.round(o.W*d);o.cv.height=Math.round(o.H*d);o.d=d;o.dirty=false}
+function T(ctx,s,x,y,{c=C.ink,size=12,font=FD,w=600,al='left',bl='alphabetic',halo=null}={}){
+  ctx.font=`${w} ${size}px ${font}`;ctx.textAlign=al;ctx.textBaseline=bl;
+  if(halo){ctx.lineWidth=3.5;ctx.strokeStyle=halo;ctx.lineJoin='round';ctx.strokeText(s,x,y)}
+  ctx.fillStyle=c;ctx.fillText(s,x,y);
+}
+function poly(ctx,pts){ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]))}
+function arrow(ctx,x,y1,y2,col){ // vertical double arrow
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=1.5;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(x,y1);ctx.lineTo(x,y2);ctx.stroke();
+  if(Math.abs(y2-y1)<9)return;
+  [[y1,y2>y1?1:-1],[y2,y2>y1?-1:1]].forEach(([y,d])=>{ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-3.5,y+d*6);ctx.lineTo(x+3.5,y+d*6);ctx.closePath();ctx.fill()});
+}
+
+/* ---------- scene ---------- */
+const sc=surf('scene');
+const cx=440,cy=170,r0=103,rM=132,Rimp=88,Reye=34,NV=6;
+const volR=a=>r0+(rM-r0)*(a+Math.PI/2)/(2*Math.PI);
+const vaneA=r=>-1.15*(r-Reye)/(Rimp-Reye);
+const pipePts=[[172,372],[262,372],[262,cy],[318,cy]];
+const pipeLens=[];let pipeLen=0;for(let i=1;i<pipePts.length;i++){const l=Math.hypot(pipePts[i][0]-pipePts[i-1][0],pipePts[i][1]-pipePts[i-1][1]);pipeLens.push(l);pipeLen+=l}
+function pipeAt(d,lat){let i=0;while(i<pipeLens.length-1&&d>pipeLens[i]){d-=pipeLens[i];i++}const A=pipePts[i],B=pipePts[i+1],t=d/pipeLens[i],nx=-(B[1]-A[1])/pipeLens[i],ny=(B[0]-A[0])/pipeLens[i];return[lerp(A[0],B[0],t)+nx*lat,lerp(A[1],B[1],t)+ny*lat]}
+const particles=[];
+function spawn(p,fresh){p.st=0;p.d=fresh?Math.random()*pipeLen:0;p.lat=(Math.random()-.5)*20;p.u=Math.random();return p}
+for(let i=0;i<150;i++)particles.push(spawn({},true));
+const OM=1.9;
+let rot=0,simT=0;
+function stepParticles(dt,Q){
+  const v=Q/100*125;
+  for(const p of particles){
+    if(p.st===0){p.d+=v*dt;if(p.d>=pipeLen){p.st=1;p.r=Reye;p.a=rot+Math.random()*Math.PI*2}}
+    else if(p.st===1){p.r+=v*.42*dt;p.a+=OM*dt;if(p.r>=Rimp){p.st=2;p.th=((p.a+vaneA(Rimp)+Math.PI/2)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI/2}}
+    else if(p.st===2){p.th+=v*.95*dt/115;if(p.th>=1.5*Math.PI){p.st=3;p.x=cx}}
+    else{p.x+=v*1.1*dt;if(p.x>=720)spawn(p,false)}
+  }
+}
+for(let i=0;i<500;i++)stepParticles(.02,100);
+const pits=[];
+let pitAcc=0;
+function drawScene(m){
+  fit(sc);const {ctx,W,H,d}=sc,s=W/720;
+  ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle=C.panel;ctx.fillRect(0,0,W,H);
+  ctx.scale(s,s);
+  const fs=n=>Math.max(n,10.5/s),small=s<.72;
+  if(!reduced&&m.sev>.25&&m.Q>0){ctx.translate((Math.random()-.5)*m.sev*2.6,(Math.random()-.5)*m.sev*2.6)}
+  const tint=mix(C.water,C.hot,Math.pow(clamp((m.T-20)/75,0,1),2)*.4);
+  const level=cy-m.z*15;
+  /* tank */
+  ctx.fillStyle=tint;ctx.fillRect(16,level,152,420-level);
+  ctx.strokeStyle=C.steel;ctx.lineWidth=5;ctx.lineJoin='miter';ctx.beginPath();ctx.moveTo(14,86);ctx.lineTo(14,422);ctx.lineTo(170,422);ctx.lineTo(170,86);ctx.stroke();
+  ctx.strokeStyle=C.flow;ctx.lineWidth=1.5;ctx.beginPath();for(let x=17;x<=167;x+=3){const y=level+Math.sin(x*.12+simT*2)*1;x===17?ctx.moveTo(x,y):ctx.lineTo(x,y)}ctx.stroke();
+  T(ctx,f0(m.T)+' °C',92,404,{c:'#fff',size:fs(14),font:FM,w:500,al:'center'});
+  /* pedestal */
+  ctx.fillStyle=C.steel;ctx.globalAlpha=.45;ctx.fillRect(cx-52,cy+118,104,100);ctx.fillRect(cx-96,cy+218,192,14);ctx.globalAlpha=1;
+  /* suction pipe */
+  const pp=pipePts.concat([[cx-20,cy]]);
+  poly(ctx,pp);ctx.lineCap='butt';ctx.lineJoin='round';ctx.strokeStyle=C.steel;ctx.lineWidth=36;ctx.stroke();
+  poly(ctx,pp);ctx.strokeStyle=tint;ctx.lineWidth=27;ctx.stroke();
+  /* strainer */
+  ctx.fillStyle=C.steel;ctx.fillRect(142,352,30,40);
+  ctx.fillStyle=tint;for(let i=0;i<4;i++)for(let j=0;j<5;j++){if(((i*7+j*13)%10)/10>=m.clog-.001||m.clog<.05){ctx.fillRect(146+i*6.2,356+j*6.8,3.6,4.6)}}
+  if(!small)T(ctx,'Strainer',137,376,{c:'#fff',size:fs(11.5),al:'right'});
+  /* casing */
+  ctx.beginPath();ctx.moveTo(cx,cy-r0);
+  for(let a=-Math.PI/2;a<=1.5*Math.PI+.001;a+=.04){const r=volR(a);ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a))}
+  ctx.lineTo(720,cy-rM);ctx.lineTo(720,cy-r0);ctx.closePath();
+  ctx.fillStyle=tint;ctx.fill();ctx.strokeStyle=C.steel;ctx.lineWidth=8;ctx.lineJoin='round';ctx.stroke();
+  /* low-pressure glow */
+  const gl=ctx.createRadialGradient(cx,cy,10,cx,cy,Reye+36);
+  gl.addColorStop(0,alpha(C.hot,.1+m.sev*.55));gl.addColorStop(1,alpha(C.hot,0));
+  ctx.fillStyle=gl;ctx.beginPath();ctx.arc(cx,cy,Reye+36,0,7);ctx.fill();
+  /* impeller shroud */
+  ctx.strokeStyle=alpha(hexOf(C.steel),.5);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,Rimp,0,7);ctx.stroke();
+  ctx.setLineDash([3,4]);ctx.beginPath();ctx.arc(cx,cy,Reye,0,7);ctx.stroke();ctx.setLineDash([]);
+  /* particles */
+  ctx.fillStyle=C.flow;
+  if(m.Q>0)for(const p of particles){
+    let x,y;
+    if(p.st===0){[x,y]=pipeAt(p.d,p.lat)}
+    else if(p.st===1){const a=p.a;x=cx+p.r*Math.cos(a);y=cy+p.r*Math.sin(a)}
+    else if(p.st===2){const R=volR(p.th),r=Rimp+5+p.u*Math.max(0,R-Rimp-10);x=cx+r*Math.cos(p.th);y=cy+r*Math.sin(p.th)}
+    else{x=p.x;y=cy-rM+6+p.u*(rM-r0-12)}
+    ctx.globalAlpha=.7;ctx.beginPath();ctx.arc(x,y,1.7,0,7);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  /* vanes */
+  ctx.lineCap='round';
+  for(let i=0;i<NV;i++){
+    const a0=rot+i*2*Math.PI/NV;
+    ctx.beginPath();for(let r=Reye;r<=Rimp;r+=3){const a=a0+vaneA(r),x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);r===Reye?ctx.moveTo(x,y):ctx.lineTo(x,y)}
+    ctx.strokeStyle=C['steel-dark'];ctx.lineWidth=6;ctx.stroke();
+    /* vapor sheet on the suction face */
+    if(m.sev>.35){
+      const rEnd=Reye+44*(m.sev-.2);
+      ctx.beginPath();for(let r=Reye+1;r<=rEnd;r+=3){const a=a0+vaneA(r)-(8/r),x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);r===Reye+1?ctx.moveTo(x,y):ctx.lineTo(x,y)}
+      ctx.strokeStyle=alpha('#ffffff',.3+.45*m.sev);ctx.lineWidth=2+5*m.sev;ctx.stroke();
+    }
+  }
+  ctx.lineCap='butt';
+  /* pits, fixed in the impeller's frame */
+  ctx.fillStyle=C.hot;
+  for(const p of pits){const a=rot+p.v*2*Math.PI/NV+vaneA(p.r)+p.o/p.r,x=cx+p.r*Math.cos(a),y=cy+p.r*Math.sin(a);ctx.beginPath();ctx.arc(x,y,p.s,0,7);ctx.fill()}
+  /* hub */
+  ctx.fillStyle=C['steel-dark'];ctx.beginPath();ctx.arc(cx,cy,14,0,7);ctx.fill();
+  ctx.fillStyle=C.panel;ctx.beginPath();ctx.arc(cx,cy,4,0,7);ctx.fill();
+  /* bubbles */
+  const nb=Math.floor(m.sev*78);
+  for(let i=0;i<nb;i++){
+    const ph=frac(simT*(.75+(i%7)*.06)+i*.61803),v=i%NV,off=((i*37)%11)/11;
+    const rC=Reye+22+m.sev*30+off*10,r=lerp(Reye+1,rC,ph);
+    const a=rot+v*2*Math.PI/NV+vaneA(r)-(5+off*13)/r,x=cx+r*Math.cos(a),y=cy+r*Math.sin(a);
+    if(ph<.9){
+      const b=(1.1+off*2.6)*(.65+m.sev*.7)*Math.min(1,ph*4+.25);
+      ctx.fillStyle=C.vapor;ctx.globalAlpha=.92;ctx.beginPath();ctx.arc(x,y,b,0,7);ctx.fill();ctx.globalAlpha=1;
+      ctx.strokeStyle=alpha(hexOf(C['water-deep']),.65);ctx.lineWidth=.7;ctx.stroke();
+    }else{
+      const k=(ph-.9)/.1;ctx.strokeStyle=alpha(C.hot,1-k);ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(x,y,1+k*7,0,7);ctx.stroke();
+    }
+  }
+  /* flashing in suction line if NPSHa is gone */
+  if(m.a0<.4){
+    for(let i=0;i<34;i++){const ph=frac(simT*.25+i*.37),[x,y]=pipeAt(ph*pipeLen,((i*53)%20-10));ctx.fillStyle=C.vapor;ctx.globalAlpha=.9;ctx.beginPath();ctx.arc(x,y,1.5+(i%3),0,7);ctx.fill();ctx.globalAlpha=1}
+  }
+  /* valve */
+  const vx=628,top=cy-rM,bot=cy-r0,open=m.phi;
+  ctx.fillStyle=C['steel-dark'];ctx.fillRect(vx-5,top,10,(bot-top)*(1-open*.92));
+  ctx.fillRect(vx-1.5,top-22,3,22);ctx.fillRect(vx-15,top-24,30,4);
+  if(!small)T(ctx,'Discharge valve',vx-24,top-11,{c:C.muted,size:fs(12),al:'right'});
+  T(ctx,'to tank, +10 m',716,bot+21,{c:C.muted,size:fs(12),al:'right'});
+  /* datum */
+  ctx.setLineDash([6,5]);ctx.strokeStyle=C.muted;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(16,cy);ctx.lineTo(244,cy);ctx.stroke();ctx.setLineDash([]);
+  if(!small)T(ctx,'centerline',176,cy-6,{c:C.muted,size:fs(11.5)});
+  /* z dimension */
+  if(Math.abs(m.z)>.25){arrow(ctx,58,cy,level,m.z>0?C.ok:C.hot)}
+  {const near=Math.abs(m.z)<1.5;T(ctx,'z = '+(m.z>=0?'+':'−')+Math.abs(m.z).toFixed(1)+' m',66,near?Math.max(level,cy)+17:(cy+level)/2+4,{c:near||level<cy?'#fff':C.ink,size:fs(12.5),font:FM,w:500})}
+  /* flange */
+  ctx.strokeStyle=C.a;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(300,cy-22);ctx.lineTo(300,cy+22);ctx.stroke();
+  T(ctx,'inlet flange',282,cy-28,{c:C.a,size:fs(12.5),al:'center',w:700});
+  /* callouts */
+  const lx=572;
+  if(m.sev>.02&&!small){
+    ctx.strokeStyle=C.hot;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(lx,cy+6);ctx.lineTo(cx+Reye+6,cy+6);ctx.stroke();
+    T(ctx,'Bubbles form at',lx+4,cy+3,{c:C.hot,size:fs(12.5),w:700});T(ctx,'the vane inlets',lx+4,cy+17,{c:C.hot,size:fs(12.5),w:700});
+    const rr=Reye+24+m.sev*30;
+    ctx.beginPath();ctx.moveTo(lx,cy+58);ctx.lineTo(cx+rr*.86,cy+rr*.5);ctx.stroke();
+    T(ctx,'and collapse further',lx+4,cy+55,{c:C.hot,size:fs(12.5),w:700});T(ctx,'out, on the metal',lx+4,cy+69,{c:C.hot,size:fs(12.5),w:700});
+  } else if(!small){
+    T(ctx,'Impeller eye, the',lx+4,cy+3,{c:C.muted,size:fs(12.5)});T(ctx,'lowest pressure',lx+4,cy+17,{c:C.muted,size:fs(12.5)});
+    ctx.strokeStyle=C.muted;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(lx,cy+6);ctx.lineTo(cx+Reye+6,cy+6);ctx.stroke();
+  }
+  if(!small)T(ctx,'Impeller animation slowed',cx,cy+246,{c:C.muted,size:fs(11.5),al:'center'});
+}
+function hexOf(c){return c}
+
+/* ---------- curves ---------- */
+const cu=surf('curves');
+function legend(ctx,items,x,y,maxX){
+  let px=x,py=y;
+  for(const it of items){
+    ctx.font=`600 12.5px ${FD}`;const w=ctx.measureText(it.t).width+26;
+    if(px+w>maxX){px=x;py+=16}
+    ctx.strokeStyle=it.c;ctx.lineWidth=it.w||2;ctx.setLineDash(it.d||[]);ctx.beginPath();ctx.moveTo(px,py-4);ctx.lineTo(px+18,py-4);ctx.stroke();ctx.setLineDash([]);
+    T(ctx,it.t,px+22,py,{c:C.ink,size:12.5});
+    px+=w+6;
+  }
+  return py;
+}
+function drawCurves(m){
+  fit(cu);const {ctx,W,H,d}=cu;
+  ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle=C.panel;ctx.fillRect(0,0,W,H);
+  const L=40,R=W<420?36:42,B=36,x=Q=>L+(W-L-R)*Q/QMAX;
+  const twoRow=W<470, lg=twoRow?36:20;
+  const topY0=lg+4,gap=lg+24,avail=H-topY0-gap-B,topH=avail*.56,botH=avail*.44;
+  const topB=topY0+topH,botT=topB+gap,botB=botT+botH;
+  const yH=h=>topB-topH*h/45, yN=n=>botB-botH*n/16, yE=e=>topB-topH*e;
+  /* cavitation zone */
+  const qc=clamp(m.qc,0,QMAX);
+  ctx.fillStyle=alpha(C.hot,.09);ctx.fillRect(x(qc),topY0,x(QMAX)-x(qc),topH);ctx.fillRect(x(qc),botT,x(QMAX)-x(qc),botH);
+  /* grid */
+  ctx.lineWidth=1;ctx.strokeStyle=C.grid;
+  for(let q=0;q<=200;q+=50){ctx.beginPath();ctx.moveTo(x(q),topY0);ctx.lineTo(x(q),topB);ctx.moveTo(x(q),botT);ctx.lineTo(x(q),botB);ctx.stroke();
+    T(ctx,String(q),x(q),botB+15,{c:C.muted,size:11,font:FM,w:400,al:'center'})}
+  for(let h=0;h<=40;h+=10){ctx.strokeStyle=C.grid;ctx.beginPath();ctx.moveTo(L,yH(h));ctx.lineTo(W-R,yH(h));ctx.stroke();T(ctx,String(h),L-6,yH(h)+4,{c:C.muted,size:11,font:FM,w:400,al:'right'})}
+  for(let e=0;e<=.8;e+=.2){T(ctx,f0(e*100),W-R+5,yE(e)+4,{c:C.muted,size:11,font:FM,w:400})}
+  for(let n=0;n<=16;n+=4){ctx.strokeStyle=C.grid;ctx.beginPath();ctx.moveTo(L,yN(n));ctx.lineTo(W-R,yN(n));ctx.stroke();T(ctx,String(n),L-6,yN(n)+4,{c:C.muted,size:11,font:FM,w:400,al:'right'})}
+  ctx.strokeStyle=C.rule;ctx.strokeRect(L,topY0,W-L-R,topH);ctx.strokeRect(L,botT,W-L-R,botH);
+  T(ctx,'Flow Q, m³/h',(L+W-R)/2,botB+31,{c:C.muted,size:12.5,al:'center'});
+  /* axis titles */
+  ctx.save();ctx.translate(11,(topY0+topB)/2);ctx.rotate(-Math.PI/2);T(ctx,'Head, m',0,0,{c:C.muted,size:12.5,al:'center'});ctx.restore();
+  ctx.save();ctx.translate(11,(botT+botB)/2);ctx.rotate(-Math.PI/2);T(ctx,'NPSH, m',0,0,{c:C.muted,size:12.5,al:'center'});ctx.restore();
+  ctx.save();ctx.translate(W-7,(topY0+topB)/2);ctx.rotate(Math.PI/2);T(ctx,'Efficiency, %',0,0,{c:C.muted,size:12.5,al:'center',bl:'middle'});ctx.restore();
+  /* legends */
+  legend(ctx,[{t:'Pump head',c:C.ink,w:2.5},{t:'Clean curve',c:C.ink,w:1,d:[5,4]},{t:'System',c:C.sys},{t:'Efficiency',c:C.muted,w:1.5,d:[1.5,3]}],L,14,W-R);
+  legend(ctx,[{t:'NPSHa',c:C.a,w:2.5},{t:'NPSHr (NPSH3)',c:C.r,w:2.5},{t:'Bubble onset (NPSHi)',c:C.r,w:1,d:[4,4]}],L,topB+22,W-R);
+  /* top panel */
+  ctx.save();ctx.beginPath();ctx.rect(L,topY0,W-L-R,topH);ctx.clip();
+  const qs=[];for(let q=0;q<=QMAX;q+=.5)qs.push(q);
+  poly(ctx,qs.map(q=>[x(q),yE(eta(q))]));ctx.strokeStyle=C.muted;ctx.lineWidth=1.5;ctx.setLineDash([1.5,3]);ctx.stroke();ctx.setLineDash([]);
+  poly(ctx,qs.map(q=>[x(q),yH(Hclean(q))]));ctx.strokeStyle=C.ink;ctx.lineWidth=1;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);
+  poly(ctx,qs.map(q=>[x(q),yH(m.sys(q))]));ctx.strokeStyle=C.sys;ctx.lineWidth=2;ctx.stroke();
+  poly(ctx,qs.map(q=>[x(q),yH(m.Hact(q))]));ctx.strokeStyle=C.ink;ctx.lineWidth=2.5;ctx.stroke();
+  ctx.restore();
+  T(ctx,'BEP',x(BEP),yE(eta(BEP))-6,{c:C.muted,size:11.5,al:'center',halo:C.panel});
+  /* bottom panel */
+  ctx.save();ctx.beginPath();ctx.rect(L,botT,W-L-R,botH);ctx.clip();
+  poly(ctx,qs.map(q=>[x(q),yN(n3(q)*NPSHI)]));ctx.strokeStyle=C.r;ctx.lineWidth=1;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);
+  poly(ctx,qs.map(q=>[x(q),yN(n3(q))]));ctx.strokeStyle=C.r;ctx.lineWidth=2.5;ctx.stroke();
+  poly(ctx,qs.map(q=>[x(q),yN(m.na(q))]));ctx.strokeStyle=C.a;ctx.lineWidth=2.5;ctx.stroke();
+  ctx.restore();
+  /* crossing, tying the two panels together */
+  if(qc>0&&qc<QMAX){
+    ctx.setLineDash([3,3]);ctx.strokeStyle=C.hot;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(x(qc),topY0);ctx.lineTo(x(qc),botB);ctx.stroke();ctx.setLineDash([]);
+    const py=yN(n3(qc));ctx.fillStyle=C.hot;ctx.beginPath();ctx.moveTo(x(qc),py-6);ctx.lineTo(x(qc)+6,py);ctx.lineTo(x(qc),py+6);ctx.lineTo(x(qc)-6,py);ctx.closePath();ctx.fill();
+    const right=x(qc)+10+96<W-R;
+    T(ctx,'3% head loss here',right?x(qc)+6:x(qc)-6,topY0+13,{c:C.hot,size:12.5,w:700,al:right?'left':'right',halo:C.panel});
+    T(ctx,'cross at '+f0(qc),right?x(qc)+6:x(qc)-6,botB-7,{c:C.hot,size:12.5,w:700,al:right?'left':'right',halo:C.panel});
+  }
+  /* operating point */
+  const xo=x(m.Q);
+  ctx.strokeStyle=C.ink;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xo,yH(m.H));ctx.lineTo(xo,botB);ctx.stroke();
+  if(m.Q>0){
+    ctx.fillStyle=C.panel;ctx.strokeStyle=C.ink;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(xo,yH(m.H),5.5,0,7);ctx.fill();ctx.stroke();
+    T(ctx,'Operating point',xo-10,yH(m.H)+18,{c:C.ink,size:12.5,w:700,al:'right',halo:C.panel});
+    const ya=clamp(yN(m.NA),botT,botB),yr=clamp(yN(m.NR),botT,botB),ok=m.NA>=m.NR;
+    ctx.strokeStyle=ok?C.ok:C.hot;ctx.lineWidth=5;ctx.globalAlpha=.75;ctx.beginPath();ctx.moveTo(xo,ya);ctx.lineTo(xo,yr);ctx.stroke();ctx.globalAlpha=1;
+    [[ya,C.a],[yr,C.r]].forEach(([y,c])=>{ctx.fillStyle=c;ctx.beginPath();ctx.arc(xo,y,4,0,7);ctx.fill()});
+    T(ctx,(ok?'margin ':'short ')+Math.abs(m.NA-m.NR).toFixed(1)+' m',xo-9,(ya+yr)/2+4,{c:ok?C.ok:C.hot,size:13,w:700,al:'right',halo:C.panel});
+  }
+}
+
+/* ---------- pressure strip ---------- */
+const st=surf('strip');
+const ease=t=>t*t*(3-2*t);
+function drawStrip(m){
+  fit(st);const {ctx,W,H,d}=st;
+  ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle=C.panel;ctx.fillRect(0,0,W,H);
+  const L=38,R=8,Tp=8,B=24,YM=18,X=f=>L+(W-L-R)*f,Y=h=>H-B-(H-B-Tp)*h/YM;
+  ctx.lineWidth=1;
+  for(let h=0;h<=15;h+=5){ctx.strokeStyle=C.grid;ctx.beginPath();ctx.moveTo(L,Y(h));ctx.lineTo(W-R,Y(h));ctx.stroke();T(ctx,String(h),L-6,Y(h)+4,{c:C.muted,size:11,font:FM,w:400,al:'right'})}
+  ctx.save();ctx.translate(10,(Tp+H-B)/2);ctx.rotate(-Math.PI/2);T(ctx,'Absolute head, m',0,0,{c:C.muted,size:12,al:'center'});ctx.restore();
+  const xs={s:0,st:.17,fl:.40,eye:.56,tip:.76,dis:1};
+  const narrow=W<520;
+  const labs=narrow?[['Tank',xs.s,'left'],['Flange',xs.fl,'center'],['Eye',xs.eye,'center'],['Discharge',xs.dis,'right']]:[['Tank surface',xs.s,'left'],['Strainer',xs.st,'center'],['Inlet flange',xs.fl,'center'],['Eye',xs.eye,'center'],['Vane tips',xs.tip,'center'],['Discharge',xs.dis,'right']];
+  labs.forEach(([t,f,al])=>{T(ctx,t,X(f),H-7,{c:C.muted,size:12,al});ctx.strokeStyle=C.rule;ctx.beginPath();ctx.moveTo(X(f),H-B);ctx.lineTo(X(f),H-B+4);ctx.stroke()});
+  /* vapor zone */
+  ctx.fillStyle=alpha(C.hot,.16);ctx.fillRect(L,Y(m.Hv),W-L-R,H-B-Y(m.Hv));
+  ctx.strokeStyle=C.hot;ctx.lineWidth=1.5;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(L,Y(m.Hv));ctx.lineTo(W-R,Y(m.Hv));ctx.stroke();ctx.setLineDash([]);
+  T(ctx,'Vapor head '+m.Hv.toFixed(1)+' m',L+6,Y(m.Hv)-5,{c:C.hot,size:12,w:700,halo:C.panel});
+  /* trace */
+  const h0=m.Hatm+m.z, hs=h0-(.0006*m.clog*m.Q*m.Q)-.00003*m.Q*m.Q, hfl=h0-m.hf;
+  const drop=n3(m.Q)*NPSHI, want=hfl-drop, hmin=Math.max(m.Hv,want), boiling=want<=m.Hv;
+  const pocket=boiling?.11*m.sev:0, top=hfl+m.H;
+  const pts=[[xs.s,h0],[xs.st,hs],[xs.fl,hfl]];
+  for(let i=1;i<=20;i++){const t=i/20;pts.push([lerp(xs.fl,xs.eye,t),lerp(hfl,hmin,ease(t))])}
+  pts.push([xs.eye+pocket,hmin]);
+  for(let i=1;i<=24;i++){const t=i/24;pts.push([lerp(xs.eye+pocket,xs.tip,t),lerp(hmin,hfl+.8*m.H,t*t*(3-2*t))])}
+  pts.push([xs.dis,top]);
+  ctx.save();ctx.beginPath();ctx.rect(L,Tp,W-L-R,H-B-Tp);ctx.clip();
+  poly(ctx,pts.map(p=>[X(p[0]),Y(Math.max(p[1],m.Hv))]));ctx.strokeStyle=C.ink;ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+  if(boiling){ctx.strokeStyle=C.hot;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(X(xs.eye-.02),Y(hmin));ctx.lineTo(X(xs.eye+pocket+.01),Y(hmin));ctx.stroke()}
+  ctx.restore();
+  /* NPSHa */
+  const fy=Y(Math.max(hfl,m.Hv)),vy=Y(m.Hv);
+  if(hfl>m.Hv){arrow(ctx,X(xs.fl),fy,vy,C.a)}
+  T(ctx,'NPSHa '+m.NA.toFixed(1)+' m',X(xs.fl)-7,Math.min(vy-18,(fy+vy)/2+4),{c:C.a,size:13,w:700,al:'right',halo:C.panel});
+  /* NPSHr: measured down from flange level */
+  const bx=lerp(xs.fl,xs.eye,.46),nr=n3(m.Q);
+  ctx.setLineDash([3,3]);ctx.strokeStyle=C.muted;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(X(xs.fl),fy);ctx.lineTo(X(bx)+8,fy);ctx.stroke();ctx.setLineDash([]);
+  arrow(ctx,X(bx),fy,Math.min(H-B,Y(hfl-nr)),C.r);
+  T(ctx,'NPSHr '+nr.toFixed(1)+' m',X(bx)+(narrow?4:-4),fy-6,{c:C.r,size:13,w:700,al:narrow?'left':'center',halo:C.panel});
+  /* lowest point */
+  const gapAbove=hmin-m.Hv;
+  T(ctx,boiling?(narrow?'Eye boiling':'Eye at vapor pressure'):'Eye: '+gapAbove.toFixed(1)+' m above boiling',X(xs.eye+pocket)+(narrow?12:34),Math.min(Y(hmin)+(boiling?-8:5),H-B-4),{c:boiling?C.hot:C.ink,size:12.5,w:700,halo:C.panel});
+  if(top>YM)T(ctx,'reaches '+f0(top)+' m at discharge ↑',X(.71),Tp+14,{c:C.muted,size:12.5,al:'right',halo:C.panel});
+}
+
+/* ---------- micro bubble ---------- */
+const mi=surf('micro');let microT=reduced?.72:0,microSeen=true,lastPitCycle=-1;const mpits=[];
+new IntersectionObserver(es=>{microSeen=es[0].isIntersecting}).observe($('microBox'));
+const stageEls=[...$('stages').children];let stageOn=-1;
+function drawMicro(){
+  fit(mi);const {ctx,W,H,d}=mi,s=W/560;
+  ctx.setTransform(d,0,0,d,0,0);ctx.clearRect(0,0,W,H);ctx.scale(s,s);
+  const fs=n=>Math.max(n,10.5/s),wall=236,P=frac(microT),cyc=Math.floor(microT);
+  const g2=ctx.createLinearGradient(0,0,560,0);g2.addColorStop(0,C.water);g2.addColorStop(1,C['water-deep']);
+  ctx.fillStyle=g2;ctx.fillRect(0,0,560,wall);
+  ctx.fillStyle=C['steel-dark'];ctx.fillRect(0,wall,560,54);
+  T(ctx,'Low pressure, below p_v',10,22,{c:'#fff',size:fs(14),w:700});
+  T(ctx,'Higher pressure, above p_v',550,22,{c:'#fff',size:fs(14),w:700,al:'right'});
+  T(ctx,'Vane surface',10,wall+34,{c:C.panel,size:fs(14),w:700});
+  T(ctx,'Bubble ≈ 1 mm, slowed ~20,000× at collapse',550,wall+34,{c:C.panel,size:fs(12),al:'right'});
+  /* stream */
+  ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=1.2;
+  for(let i=0;i<5;i++){const y=48+i*36,x0=(frac(microT*.7+i*.37)*620)-60;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0+44,y);ctx.stroke()}
+  /* pits */
+  const JX=372;
+  if(P>.74&&lastPitCycle!==cyc){lastPitCycle=cyc;mpits.push({x:JX+((cyc*47)%44)-22,r:4+(cyc*13)%5});if(mpits.length>14)mpits.shift()}
+  for(const p of mpits){ctx.fillStyle=C.panel;ctx.globalAlpha=.25;ctx.beginPath();ctx.arc(p.x,wall,p.r,0,Math.PI);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=C.hot;ctx.lineWidth=1.3;ctx.beginPath();ctx.arc(p.x,wall,p.r,0,Math.PI);ctx.stroke()}
+  /* bubble timeline */
+  let bx,R,dent=0,stage;
+  const jx=JX+((cyc*47)%44)-22;
+  if(P<.32){const t=P/.32;bx=lerp(70,190,t);R=lerp(4,38,ease(t));stage=0}
+  else if(P<.56){const t=(P-.32)/.24;bx=lerp(190,jx,ease(t));R=38;stage=1}
+  else if(P<.74){const t=(P-.56)/.18;bx=jx;R=lerp(38,13,t*t);dent=t;stage=2}
+  else{bx=jx;R=0;stage=3}
+  if(stage!==stageOn){stageOn=stage;stageEls.forEach((e,i)=>e.classList.toggle('on',i===stage))}
+  if(R>0){
+    const by=wall-R-(stage===2?4:10)-(1-dent)*0;
+    ctx.beginPath();
+    for(let a=0;a<=6.3;a+=.08){const up=Math.max(0,-Math.sin(a)),r=R*Math.max(.1,1-1.15*dent*Math.pow(up,3)),x=bx+r*Math.cos(a),y=by+r*Math.sin(a);a===0?ctx.moveTo(x,y):ctx.lineTo(x,y)}
+    ctx.closePath();ctx.fillStyle='rgba(255,255,255,.92)';ctx.fill();ctx.strokeStyle='rgba(0,40,60,.55)';ctx.lineWidth=1;ctx.stroke();
+    if(stage<2)T(ctx,'vapor',bx,by+4,{c:'#16323d',size:Math.max(fs(12),R*.42),al:'center'});
+    if(stage===2&&dent>.25){
+      const k=(dent-.25)/.75,y0=by-R-14,y1=lerp(y0+6,wall-1,k);
+      ctx.fillStyle=C.hot;ctx.beginPath();ctx.moveTo(bx-6,y0);ctx.lineTo(bx+6,y0);ctx.lineTo(bx+1.2,y1);ctx.lineTo(bx-1.2,y1);ctx.closePath();ctx.fill();
+      T(ctx,'liquid jet',bx+12,y0+8,{c:'#fff',size:fs(13),w:700});
+    }
+  } else {
+    const k=(P-.74)/.26;
+    ctx.save();ctx.beginPath();ctx.rect(0,0,560,wall);ctx.clip();
+    for(let i=0;i<3;i++){const q=clamp(k*1.5-i*.18,0,1);if(q<=0)continue;ctx.strokeStyle=`rgba(255,255,255,${(1-q)*.85})`;ctx.lineWidth=2;ctx.beginPath();ctx.arc(jx,wall,10+q*165,Math.PI,2*Math.PI);ctx.stroke()}
+    ctx.restore();
+    if(k<.5){ctx.fillStyle=C.hot;ctx.beginPath();ctx.arc(jx,wall,9*(1-k),0,7);ctx.fill()}
+    T(ctx,'shock wave and impact',jx,wall-(s<.7?150:172),{c:'#fff',size:fs(13),w:700,al:'center'});
+  }
+}
+
+/* ---------- readouts ---------- */
+let rT=0;
+function readouts(m){
+  $('rQ').textContent=f0(m.Q);$('rH').textContent=f1(m.H);
+  $('rHs').textContent=m.Hc-m.H>.3?`m, clean ${f1(m.Hc)}`:'m';
+  $('rN').textContent=`${f1(m.NA)} / ${f1(m.NR)}`;
+  $('rR').textContent=m.r.toFixed(2);
+  const S=$('status');let t,c;
+  if(m.a0<=0.05||m.Q===0){t='No delivery: water flashes before the pump';c='bad'}
+  else if(m.r>=NPSHI){t='No bubbles';c='ok'}
+  else if(m.r>=1.03){t='Incipient cavitation: bubbles, head intact';c='warn'}
+  else if(m.r>=.97){t='At NPSHr: head down 3%';c='bad'}
+  else{t='Developed cavitation: head collapsing';c='bad'}
+  if(S.textContent!==t){S.textContent=t;S.dataset.s=c}
+  const parts=`NPSHa = p_atm/ρg ${f1(m.Hatm)} ${m.z<0?'−':'+'} z ${f1(Math.abs(m.z))} − h_f ${f1(m.hf)} − p_v/ρg ${f1(m.Hv)} = `;
+  $('eq').innerHTML=`${parts}<b>${f1(m.NA)} m</b> &nbsp;&nbsp;(at ${f0(m.Q)} m³/h, ${f0(m.T)} °C, p_v = ${m.pv.toFixed(1)} kPa)`;
+}
+
+/* ---------- main loop ---------- */
+setCaption();syncSliders();setPlay(playing);
+window.cavModel={solve,Chapters};
+let last=performance.now();
+function frame(now){
+  const raw=Math.min(.05,(now-last)/1000);last=now;
+  const dt=anim?raw:0;
+  if(playing&&!free){
+    chT+=dt;
+    const bar=pills.children[ch].firstElementChild;bar.style.width=clamp(chT/CH_TIME*100,0,100)+'%';
+    if(chT>=CH_TIME){ if(ch<Chapters.length-1)goto(ch+1); else{chT=CH_TIME;setPlay(false)} }
+  }
+  if(!free&&anim){const k=1-Math.exp(-dt/.8);let ch2=false;for(const q in cur){const n=lerp(cur[q],tgt[q],k);if(Math.abs(n-cur[q])>1e-5)ch2=true;cur[q]=n}if(ch2)syncSliders()}
+  const m=solve(cur);
+  rot+=OM*dt;simT+=dt;
+  stepParticles(dt,m.Q);
+  if(m.Q>0&&m.sev>.05&&anim){pitAcc+=dt*m.sev*m.sev*26;while(pitAcc>=1){pitAcc-=1;if(pits.length<420){const rC=Reye+8+Math.random()*(26+m.sev*34);pits.push({v:Math.floor(Math.random()*NV),r:rC,o:-(3+Math.random()*4),s:.7+Math.random()*.9})}}}
+  drawScene(m);drawCurves(m);drawStrip(m);
+  if(microSeen){microT+=dt/5.2;drawMicro()}
+  rT+=raw;if(rT>.1||!anim){rT=0;readouts(m)}
+}
+/* Keep running if one frame throws, and if the host frame stops delivering animation frames. */
+let lastRaf=0;
+function tick(now){lastRaf=performance.now();try{frame(now)}catch(e){console.error(e)}requestAnimationFrame(tick)}
+setInterval(()=>{const n=performance.now();if(!document.hidden&&n-lastRaf>400){try{frame(n)}catch(e){console.error(e)}}},50);
+readouts(solve(cur));
+requestAnimationFrame(tick);
+})();
+</script>
+
+</body></html>

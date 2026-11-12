@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pump Selection and Cavitation: Learning Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#E8EDEF; --panel:#F7F9F9; --ink:#13262E; --muted:#55686F; --rule:#B9C6CB; --soft:#DCE4E7;
+  --blue:#0A78A3; --red:#C63D1A; --green:#1F8158; --amber:#A87406; --purple:#6A4FA0;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Source Serif 4",Georgia,serif;
+  --ui:"IBM Plex Sans",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0E1A1F; --panel:#15252B; --ink:#E4EEF1; --muted:#95A9AF; --rule:#34494F; --soft:#1C3037;
+  --blue:#55BFE5; --red:#FF7F52; --green:#4FC492; --amber:#E4B04A; --purple:#B39DE6; color-scheme:dark}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 var(--body)}
+a{color:var(--blue);text-underline-offset:2px}
+a:hover{color:var(--ink)}
+.wrap{max-width:1180px;margin:0 auto;padding:32px 20px 64px}
+h1,h2,h3{font-family:var(--display);line-height:1.05;margin:0;text-wrap:balance}
+h1{font-size:clamp(2.4rem,6vw,4rem);font-weight:700}
+h2{font-size:clamp(1.7rem,3.4vw,2.3rem);font-weight:700}
+h3{font-size:1.3rem;font-weight:600}
+p{margin:0}
+.eyebrow{font:600 .85rem/1.2 var(--display);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.lede{font-size:1.15rem;max-width:66ch;margin-top:12px}
+header{display:grid;gap:6px;padding-bottom:26px;border-bottom:2px solid var(--ink)}
+.m{font-family:var(--mono);font-size:.92em;white-space:nowrap}
+sub,sup{font-size:.72em;line-height:0}
+
+/* how to use */
+.how{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin:26px 0 8px}
+.how div{background:var(--panel);padding:14px 16px;display:grid;gap:4px;align-content:start}
+.how b{font:700 2rem/1 var(--display);color:var(--blue)}
+.how strong{font:600 1.15rem/1.2 var(--display)}
+.how p{font-size:.95rem;color:var(--muted)}
+
+/* materials */
+.sec{margin-top:52px;display:grid;gap:16px}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--rule);padding:16px;display:flex;flex-direction:column;gap:8px;border-top:5px solid var(--c,var(--ink))}
+.card .btn{margin-top:auto;align-self:flex-start}
+.card .kind{font:600 .8rem/1 var(--display);letter-spacing:.09em;text-transform:uppercase;color:var(--c)}
+.card h3{font-size:1.4rem}
+.card p{font-size:.95rem}
+.card .meta{font:400 .78rem/1.4 var(--mono);color:var(--muted)}
+.btn{display:inline-block;font:600 1rem/1 var(--display);letter-spacing:.03em;text-decoration:none;padding:9px 14px;border:1.5px solid var(--ink);color:var(--ink);background:transparent;margin-top:4px;justify-self:start}
+.btn:hover{background:var(--ink);color:var(--panel)}
+.btn.solid{background:var(--ink);color:var(--panel)}
+.btn.solid:hover{background:transparent;color:var(--ink)}
+
+/* path nav */
+.path{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.path a{font:600 1rem/1 var(--display);text-decoration:none;color:var(--ink);border:1px solid var(--rule);background:var(--panel);padding:8px 11px}
+.path a:hover{border-color:var(--ink)}
+.path a b{color:var(--blue);margin-right:4px}
+
+/* modules */
+.module{background:var(--panel);border:1px solid var(--rule);display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:0}
+.module+.module{margin-top:18px}
+.mhead{grid-column:1/-1;padding:18px 22px 14px;border-bottom:1px solid var(--rule);display:grid;gap:6px}
+.mhead .num{font:700 .95rem/1 var(--display);letter-spacing:.09em;text-transform:uppercase;color:var(--blue)}
+.mhead p{max-width:80ch}
+.mleft{padding:18px 22px;display:grid;gap:16px;align-content:start;border-right:1px solid var(--rule)}
+.mright{padding:18px 22px;display:grid;gap:16px;align-content:start;background:var(--soft)}
+.mleft>*,.mright>*,.sec>*{min-width:0}
+.lbl{font:600 .82rem/1.2 var(--display);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+ul.steps{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+ul.steps li{display:grid;grid-template-columns:86px minmax(0,1fr);gap:10px;align-items:baseline;font-size:.97rem}
+.tag{font:600 .74rem/1 var(--display);letter-spacing:.07em;text-transform:uppercase;padding:4px 6px;text-align:center;border:1.5px solid currentColor}
+.t-anim{color:var(--purple)}.t-slides{color:var(--blue)}.t-ex{color:var(--green)}.t-sol{color:var(--amber)}
+ul.keys{margin:0;padding-left:1.1em;display:grid;gap:6px;font-size:.97rem}
+.eq{font:400 .9rem/1.7 var(--mono);background:var(--panel);border:1px solid var(--rule);padding:10px 12px;overflow-x:auto}
+.eq div{white-space:nowrap}
+.eq .src{font:400 .76rem/1.3 var(--mono);color:var(--muted);margin-top:4px;white-space:normal}
+details{border:1px solid var(--rule);background:var(--panel)}
+details+details{margin-top:6px}
+summary{cursor:pointer;padding:9px 12px;font:500 .95rem/1.35 var(--ui);list-style:none;display:flex;gap:8px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";font:600 1rem/1.3 var(--mono);color:var(--blue);flex:none}
+details[open] summary::before{content:"−"}
+details .ans{padding:0 12px 11px 30px;font-size:.95rem}
+.note{border-left:4px solid var(--amber);background:var(--panel);padding:12px 14px;font-size:.95rem;display:grid;gap:6px}
+.note strong{font:600 1.05rem/1.2 var(--display);letter-spacing:.02em}
+
+/* examples table */
+.tw{overflow-x:auto;background:var(--panel);border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:.95rem}
+th{font:600 1rem/1.2 var(--display);text-align:left;padding:10px 12px;border-bottom:2px solid var(--ink);vertical-align:bottom}
+td{padding:10px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+td:first-child{font:700 1.15rem/1.2 var(--display);white-space:nowrap}
+td details{border:0;background:transparent}
+td summary{padding:0}
+td details .ans{padding:6px 0 0 18px}
+
+/* glossary */
+dl.gl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin:0}
+dl.gl div{background:var(--panel);padding:12px 14px}
+dl.gl dt{font:600 1.12rem/1.2 var(--display)}
+dl.gl dd{margin:3px 0 0;font-size:.95rem}
+dl.gl .where{display:block;font:400 .76rem/1.4 var(--mono);color:var(--muted);margin-top:3px}
+
+.notice{margin-top:18px;background:var(--panel);border:1px solid var(--rule);border-left:5px solid var(--red);padding:12px 16px;display:grid;gap:3px;font-size:.98rem}
+.notice strong{font:700 1.15rem/1.2 var(--display);letter-spacing:.02em}
+footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--rule);font-size:.88rem;color:var(--muted);display:grid;gap:6px}
+
+@media (max-width:980px){
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .how{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .module{grid-template-columns:minmax(0,1fr)}
+  .mleft{border-right:0;border-bottom:1px solid var(--rule)}
+}
+@media (max-width:620px){
+  .cards,.how,dl.gl{grid-template-columns:minmax(0,1fr)}
+  ul.steps li{grid-template-columns:minmax(0,1fr);gap:4px}
+  .tag{justify-self:start}
+  .mhead,.mleft,.mright{padding-left:16px;padding-right:16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Thermal Fluids · Fluid transport</div>
+  <h1>Pump Selection and Cavitation</h1>
+  <p class="lede">A study hub for learning how centrifugal pumps work, how to read a pump curve, how to pick a pump for a pipe system, and how to keep it from cavitating. Everything here comes from the class lecture slides, two interactive animations, and five worked example problems.</p>
+</header>
+
+<div class="notice" role="note">
+  <strong>For class teaching purposes only.</strong>
+  <span>Source: Penoncello, <em>Thermal Energy Systems: Design and Analysis</em>, 2nd ed. These materials support the Thermal Fluids course and are not for redistribution or commercial use.</span>
+</div>
+
+<div class="how" aria-label="How to use this page">
+  <div><b>1</b><strong>Watch</strong><p>Start each module with its animation chapters to build a picture of what is happening.</p></div>
+  <div><b>2</b><strong>Read</strong><p>Go through the lecture slides listed for the module. Links open the PDF at the right page.</p></div>
+  <div><b>3</b><strong>Try</strong><p>Attempt the example problem on your own before you open the solution.</p></div>
+  <div><b>4</b><strong>Check</strong><p>Answer the "Check yourself" questions, then compare with the worked solution.</p></div>
+</div>
+
+<!-- MATERIALS -->
+<section class="sec" id="materials" aria-labelledby="mat-h">
+  <div><div class="eyebrow">Course materials</div><h2 id="mat-h">Everything in one place</h2></div>
+  <div class="cards">
+    <article class="card" style="--c:var(--blue)">
+      <div class="kind">Lecture</div>
+      <h3>Fluid transport: pumps</h3>
+      <p>The full lecture: pump types, performance curves, system curves, selection, cavitation, NPSH, affinity laws, design practice, and practice problems.</p>
+      <div class="meta">PDF · 60 pages</div>
+      <a class="btn solid" href="lectures/Pumps_Lecture_Slides.pdf" target="_blank" rel="noopener">Open slides</a>
+    </article>
+    <article class="card" style="--c:var(--purple)">
+      <div class="kind">Animation 1</div>
+      <h3>Pumps and pump performance</h3>
+      <p>Thirteen animated chapters, from pump families to reading a manufacturer's chart, plus a "Try it" chapter where you drag along the curves yourself.</p>
+      <div class="meta">Interactive · play, pause, scrub</div>
+      <a class="btn solid" href="animations/pumps-and-pump-performance.html" target="_blank" rel="noopener">Open animation</a>
+    </article>
+    <article class="card" style="--c:var(--red)">
+      <div class="kind">Animation 2</div>
+      <h3>Cavitation and NPSH</h3>
+      <p>A nine-step walkthrough of a pump rig that shows bubbles forming and collapsing. Then take the sliders for valve, tank level, temperature and strainer clogging.</p>
+      <div class="meta">Interactive · sliders and live readings</div>
+      <a class="btn solid" href="animations/cavitation-and-npsh.html" target="_blank" rel="noopener">Open animation</a>
+    </article>
+    <article class="card" style="--c:var(--green)">
+      <div class="kind">Practice</div>
+      <h3>Example problems and solutions</h3>
+      <p>Five worked problems: pump head and operating cost, pump selection with a system curve, pump placement against cavitation, and the affinity laws.</p>
+      <div class="meta">PDF · 12 pages of solutions</div>
+      <a class="btn solid" href="example-problems/Example_Problems_Solutions.pdf" target="_blank" rel="noopener">Open solutions</a>
+    </article>
+  </div>
+  <p style="font-size:.92rem;color:var(--muted);max-width:90ch">Slide numbers on this page are PDF page numbers, which is what your PDF viewer shows. The page counter printed in each slide's footer counts differently, so use the links rather than the footer.</p>
+</section>
+
+<!-- LEARNING PATH -->
+<section class="sec" id="path" aria-labelledby="path-h">
+  <div><div class="eyebrow">Learning path</div><h2 id="path-h">Six modules, in order</h2></div>
+  <p style="max-width:75ch">Each module builds on the one before it. If this is your first time with pumps, go in order. If you are reviewing for an exam, jump to the module you need.</p>
+  <nav class="path" aria-label="Modules">
+    <a href="#m1"><b>1</b>How pumps work</a>
+    <a href="#m2"><b>2</b>Pump curves</a>
+    <a href="#m3"><b>3</b>System curve and selection</a>
+    <a href="#m4"><b>4</b>Cavitation and NPSH</a>
+    <a href="#m5"><b>5</b>Affinity laws</a>
+    <a href="#m6"><b>6</b>Design practice</a>
+  </nav>
+
+  <!-- M1 -->
+  <article class="module" id="m1">
+    <div class="mhead"><div class="num">Module 1</div><h2>How pumps work</h2>
+      <p>Every pump adds energy to a liquid. Pumps are grouped by how that energy gets in: positive displacement pumps push pockets of liquid, while dynamic pumps use a spinning impeller. This course follows the centrifugal pump.</p></div>
+    <div class="mleft">
+      <div><div class="lbl">Study in this order</div>
+        <ul class="steps">
+          <li><span class="tag t-anim">Animation</span><span><a href="animations/pumps-and-pump-performance.html#families" target="_blank" rel="noopener">Ch. 1 Families</a>, <a href="animations/pumps-and-pump-performance.html#impellers" target="_blank" rel="noopener">Ch. 2 Impellers</a>, <a href="animations/pumps-and-pump-performance.html#housings" target="_blank" rel="noopener">Ch. 3 Housings</a>, <a href="animations/pumps-and-pump-performance.html#inside" target="_blank" rel="noopener">Ch. 4 Inside the pump</a></span></li>
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=3" target="_blank" rel="noopener">p. 3</a> learning objectives · <a href="lectures/Pumps_Lecture_Slides.pdf#page=4" target="_blank" rel="noopener">p. 4</a> pump types · <a href="lectures/Pumps_Lecture_Slides.pdf#page=5" target="_blank" rel="noopener">p. 5</a> operation of a dynamic pump</span></li>
+        </ul></div>
+      <div><div class="lbl">Key ideas</div>
+        <ul class="keys">
+          <li><b>Positive displacement:</b> reciprocating (pistons, plungers, diaphragms, bellows) or rotary (vanes, screws, lobes).</li>
+          <li><b>Dynamic:</b> centrifugal sends liquid out radially, propeller sends it axially, mixed flow does both.</li>
+          <li>Inside a centrifugal pump: liquid enters at the <b>eye</b>, the <b>impeller</b> throws it outward and raises its kinetic energy, and the widening <b>volute</b> slows it down so kinetic energy turns into pressure.</li>
+          <li>Net result: a large pressure rise, with kinetic energy at the outlet about where it started (<span class="m">ΔKE ≈ 0</span>).</li>
+        </ul></div>
+    </div>
+    <div class="mright">
+      <div><div class="lbl">Check yourself</div>
+        <details><summary>What job does the volute do?</summary><div class="ans">It is a passage that keeps widening. The liquid slows down there, and its kinetic energy is converted into pressure. (Animation Ch. 4; slide p. 5)</div></details>
+        <details><summary>Comparing the inlet and outlet of a centrifugal pump, which form of energy changes the most?</summary><div class="ans">Pressure. Kinetic energy ends up about where it started, so the net result is a large rise in pressure, ΔP. (Animation Ch. 4)</div></details>
+        <details><summary>A propeller pump and a centrifugal pump both use an impeller. What is the difference?</summary><div class="ans">The direction the liquid leaves. Centrifugal sends it radially, away from the shaft. Propeller pushes it axially, along the shaft. (Animation Ch. 2; slide p. 4)</div></details>
+      </div>
+    </div>
+  </article>
+
+  <!-- M2 -->
+  <article class="module" id="m2">
+    <div class="mhead"><div class="num">Module 2</div><h2>Measuring performance and reading pump curves</h2>
+      <p>A pump's performance is measured on a test bench and published by the manufacturer as a pump curve. Learning to read that chart is the core skill for everything that follows.</p></div>
+    <div class="mleft">
+      <div><div class="lbl">Study in this order</div>
+        <ul class="steps">
+          <li><span class="tag t-anim">Animation</span><span><a href="animations/pumps-and-pump-performance.html#test-bench" target="_blank" rel="noopener">Ch. 5 Test bench</a>, <a href="animations/pumps-and-pump-performance.html#data-reduction" target="_blank" rel="noopener">Ch. 6 Data reduction</a>, <a href="animations/pumps-and-pump-performance.html#the-chart" target="_blank" rel="noopener">Ch. 7 The chart</a>, <a href="animations/pumps-and-pump-performance.html#booklets" target="_blank" rel="noopener">Ch. 8 Booklets</a></span></li>
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=6" target="_blank" rel="noopener">p. 6–7</a> measurements and equations · <a href="lectures/Pumps_Lecture_Slides.pdf#page=10" target="_blank" rel="noopener">p. 10–11</a> reading a pump chart</span></li>
+          <li><span class="tag t-anim">Animation</span><span><a href="animations/pumps-and-pump-performance.html#reading" target="_blank" rel="noopener">Ch. 9 Reading</a>, <a href="animations/pumps-and-pump-performance.html#which-power" target="_blank" rel="noopener">Ch. 10 Which power?</a></span></li>
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=12" target="_blank" rel="noopener">p. 12–14</a> the same worked example on the slides</span></li>
+          <li><span class="tag t-anim">Animation</span><span><a href="animations/pumps-and-pump-performance.html#extremes" target="_blank" rel="noopener">Ch. 11 Extremes</a>, <a href="animations/pumps-and-pump-performance.html#bep" target="_blank" rel="noopener">Ch. 12 Best efficiency</a></span></li>
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=8" target="_blank" rel="noopener">p. 8–9</a> cutoff head and free delivery</span></li>
+          <li><span class="tag t-anim">Try it</span><span><a href="animations/pumps-and-pump-performance.html#try-it" target="_blank" rel="noopener">Ch. 13 Try it</a>: drag on the chart and read capacity, head, efficiency and power</span></li>
+          <li><span class="tag t-ex">Practice</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=15" target="_blank" rel="noopener">Slide p. 15</a> example pump problem (answers given on the slide) · then <a href="#examples">Example 1</a></span></li>
+        </ul></div>
+      <div><div class="lbl">Key equations</div>
+        <div class="eq">
+          <div>H<sub>p</sub> = H<sub>d</sub> − H<sub>s</sub></div>
+          <div>H<sub>p</sub> = (P<sub>d</sub>/γ + V<sub>d</sub>²/2g + z<sub>d</sub>) − (P<sub>s</sub>/γ + V<sub>s</sub>²/2g + z<sub>s</sub>)</div>
+          <div>Ẇ = ṁ g H<sub>p</sub> &nbsp;&nbsp;power input to the liquid</div>
+          <div>Ẇ<sub>bhp</sub> = T ω &nbsp;&nbsp;power input to the impeller (brake horsepower)</div>
+          <div>η<sub>p</sub> = Ẇ / Ẇ<sub>bhp</sub></div>
+          <div class="src">Slide p. 7, Eqs. (1)–(5)</div>
+        </div></div>
+    </div>
+    <div class="mright">
+      <div><div class="lbl">Key ideas</div>
+        <ul class="keys">
+          <li>A pump chart is for <b>one pump model at one speed</b>. It shows a head curve for each impeller diameter, iso-efficiency lines, iso-power lines, and the NPSH required curve.</li>
+          <li>The power read from the chart is the <b>brake horsepower</b>, the power into the impeller, not the power into the liquid.</li>
+          <li><b>Cutoff head</b> (point a): no flow, highest head. <b>Free delivery</b> (point b): no head, highest flow. Efficiency is zero at both ends, with a maximum between them: the <b>best efficiency point (bep)</b>.</li>
+        </ul></div>
+      <div><div class="lbl">Check yourself</div>
+        <details><summary>The chart gives 10 hp at the operating point. Is that the power into the liquid or into the impeller?</summary><div class="ans">Into the impeller (brake horsepower). For the worked example, the power into the liquid is ṁgH<sub>p</sub> = 7.08 hp, which is less than 10 hp. Their ratio, 7.08/10 = 0.708, matches the ~71% read from the chart. (Slide p. 14; Animation Ch. 10)</div></details>
+        <details><summary>A 6½-inch impeller produces 160 ft of head. What are the flow, power and efficiency?</summary><div class="ans">175 gpm, 10 hp, and about 71% efficiency. (Slides p. 12–13; Animation Ch. 9)</div></details>
+        <details><summary>Why is efficiency zero at both cutoff head and free delivery?</summary><div class="ans">Because Ẇ = ṁgH<sub>p</sub> is zero with no flow, and zero with no head. (Animation Ch. 11; slides p. 8–9)</div></details>
+      </div>
+    </div>
+  </article>
+
+  <!-- M3 -->
+  <article class="module" id="m3">
+    <div class="mhead"><div class="num">Module 3</div><h2>The system curve and pump selection</h2>
+      <p>A pump must deliver the right flow while overcoming the elevation and friction of the pipe system. The system curve describes what the pipes need; the pump curve describes what the pump can give. Where they cross is where the system actually runs.</p></div>
+    <div class="mleft">
+      <div><div class="lbl">Study in this order</div>
+        <ul class="steps">
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=16" target="_blank" rel="noopener">p. 16–17</a> what the system curve is</span></li>
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=18" target="_blank" rel="noopener">p. 18–26</a> worked example: acetone system, select a pump for 300 gpm</span></li>
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=27" target="_blank" rel="noopener">p. 27–28</a> general observations for selection</span></li>
+          <li><span class="tag t-anim">Animation</span><span>Revisit <a href="animations/pumps-and-pump-performance.html#bep" target="_blank" rel="noopener">Ch. 12 Best efficiency</a></span></li>
+          <li><span class="tag t-ex">Practice</span><span><a href="#examples">Example 2</a>: select a Bell &amp; Gossett e-1531 pump</span></li>
+        </ul></div>
+      <div><div class="lbl">Key equation: energy balance between two points</div>
+        <div class="eq">
+          <div>H<sub>p</sub> = (z<sub>2</sub> − z<sub>1</sub>) + (f L/D + ΣK) V²/2g</div>
+          <div class="src">Slide p. 19 (tank-to-tank system, with P and V at the free surfaces cancelling). Example 2 writes the same thing in terms of flow rate: H<sub>p</sub> = (z<sub>2</sub> − z<sub>1</sub>) + (f L/D + ΣK) 8V̇²/(π²gD⁴)</div>
+        </div></div>
+    </div>
+    <div class="mright">
+      <div><div class="lbl">Key ideas (slides p. 27–28)</div>
+        <ul class="keys">
+          <li>You must find the system curve before you can size a pump.</li>
+          <li>The <b>operating point</b> is where the pump curve and the system curve intersect.</li>
+          <li>If the pump's ports differ from the pipe size, the reducer and expander add resistance. Recalculate the system curve.</li>
+          <li>Added resistance, such as closing a valve, shifts the system curve to the left. That changes the operating point, the efficiency and the bhp.</li>
+          <li>Select pumps to run <b>slightly to the right</b> of the maximum efficiency. Pumps selected to the left may fail their motors if unforeseen resistance drops efficiency too far.</li>
+        </ul></div>
+      <div><div class="lbl">Check yourself</div>
+        <details><summary>What does partially closing a valve do to the system curve?</summary><div class="ans">It adds resistance, which shifts the system curve to the left. Head rises and capacity falls. (Slides p. 26–28)</div></details>
+        <details><summary>Why choose an operating point slightly to the right of the bep rather than to the left?</summary><div class="ans">Unforeseen resistances move the operating point left: head rises, capacity drops, and efficiency increases. Starting on the left risks efficiency dropping too much, which may cause motor failure. (Slide p. 28)</div></details>
+        <details><summary>In the slide example, which pump was selected and where does it operate?</summary><div class="ans">Bell &amp; Gossett Series 1531, Model 3BC at 1150 rpm with the 8-inch impeller: 310 gpm at 24 ft, efficiency 77.4%, 2.4 hp brake horsepower. (Slides p. 23 and 26)</div></details>
+      </div>
+    </div>
+  </article>
+
+  <!-- M4 -->
+  <article class="module" id="m4">
+    <div class="mhead"><div class="num">Module 4</div><h2>Cavitation and NPSH</h2>
+      <p>A pump pulls its inlet pressure down. If the pressure anywhere inside drops to the liquid's vapor pressure, the liquid boils even when it is cold, and the bubbles then collapse against the impeller. Net Positive Suction Head (NPSH) is how you check that this will not happen.</p></div>
+    <div class="mleft">
+      <div><div class="lbl">Study in this order</div>
+        <ul class="steps">
+          <li><span class="tag t-anim">Animation</span><span><a href="animations/cavitation-and-npsh.html" target="_blank" rel="noopener">Cavitation and NPSH</a>: let all nine steps play (Healthy → The fix), then scroll down to the notes and the single-bubble close-up</span></li>
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=29" target="_blank" rel="noopener">p. 29</a> cavitation · <a href="lectures/Pumps_Lecture_Slides.pdf#page=30" target="_blank" rel="noopener">p. 30–32</a> NPSHa, NPSHr, flooded suction vs suction lift</span></li>
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=33" target="_blank" rel="noopener">p. 33–38</a> worked example: where to place the pump to prevent cavitation</span></li>
+          <li><span class="tag t-anim">Try it</span><span>Back in the cavitation animation, move the sliders: raise the temperature, clog the strainer, lower the tank, and watch NPSHa and the margin ratio</span></li>
+          <li><span class="tag t-ex">Practice</span><span><a href="#examples">Example 3</a>: maximum pump height, and the effect of water temperature</span></li>
+        </ul></div>
+      <div><div class="lbl">Key equations</div>
+        <div class="eq">
+          <div>NPSHa = P<sub>s</sub>/γ − P<sub>v</sub>/γ</div>
+          <div>NPSHa = P<sub>1</sub>/γ + (z<sub>1</sub> − z<sub>s</sub>) − (f L/D + ΣK + 1) V<sub>s</sub>²/2g − P<sub>v</sub>/γ</div>
+          <div>Cavitation is prevented when NPSHa &gt; NPSHr</div>
+          <div class="src">Slides p. 31–32, Eqs. (9)–(10). (z<sub>1</sub> − z<sub>s</sub>) is negative for suction lift and positive for flooded suction.</div>
+        </div></div>
+    </div>
+    <div class="mright">
+      <div><div class="lbl">Key ideas</div>
+        <ul class="keys">
+          <li><b>NPSHa</b> (available) belongs to the system: tank, pipe and liquid. You calculate it. It falls as flow rises.</li>
+          <li><b>NPSHr</b> (required) belongs to the pump. You read it from the manufacturer's curve. It rises as flow rises.</li>
+          <li>NPSHa &gt; 0 is <b>not</b> enough: pressure keeps dropping just inside the pump, before the impeller.</li>
+          <li>Suction lift systems are more prone to cavitation than flooded suction.</li>
+          <li>Hot liquid has a higher vapor pressure, so NPSHa drops. In Example 3, above 76 °C the pump must sit below the water surface.</li>
+          <li>Collapsing bubbles send pressure waves into the metal, causing pitting (cavitation erosion), noise, vibration and lost head.</li>
+        </ul></div>
+      <div class="note"><strong>Heads-up: which safety margin?</strong>
+        <p>The lecture slides recommend <b>NPSHa − NPSHr ≥ 3 ft</b> (slide p. 32), and the slide example uses that 3 ft. The Example 3 solution uses a safety factor of <b>1 m</b>. The cavitation animation also explains that the NPSHr printed on a curve is the point where head has already dropped 3%, and mentions Hydraulic Institute ratios of NPSHa/NPSHr. If you are not sure which margin to use on an assignment, use the one the problem gives, or ask your instructor.</p></div>
+      <div><div class="lbl">Check yourself</div>
+        <details><summary>If NPSHa is positive, is the pump safe from cavitation?</summary><div class="ans">Not necessarily. NPSHa ≥ 0 means no boiling at the inlet, but cavitation may still occur because of the pressure drop before the impeller. You need NPSHa &gt; NPSHr. (Slides p. 31–32)</div></details>
+        <details><summary>A flow-control valve has to go somewhere. Suction line or discharge line?</summary><div class="ans">Discharge line. Valves in the suction line can cause cavitation. (Slide p. 54; the animation's "How to stop it" list says the same)</div></details>
+        <details><summary>In the animation, why does hot water cavitate at a flow that was safe with cool water?</summary><div class="ans">Vapor pressure rises with temperature, so the whole NPSHa line drops. NPSHr stays the same because the pump has not changed. (Animation step 7 "Hot water")</div></details>
+        <details><summary>In the slide example (water at 100 °F, Model 2AC at 3500 rpm), how high above the tank surface can the pump go?</summary><div class="ans">h = 9.571 ft. This is the maximum: any higher may cause cavitation from the extra suction head loss. (Slides p. 37–38)</div></details>
+      </div>
+    </div>
+  </article>
+
+  <!-- M5 -->
+  <article class="module" id="m5">
+    <div class="mhead"><div class="num">Module 5</div><h2>Affinity laws</h2>
+      <p>Dimensional analysis shows how a pump's flow, head and power scale when you change its speed or impeller diameter. That lets you estimate performance at conditions not printed on the chart.</p></div>
+    <div class="mleft">
+      <div><div class="lbl">Study in this order</div>
+        <ul class="steps">
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=39" target="_blank" rel="noopener">p. 39–40</a> dimensional analysis and similitude</span></li>
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=41" target="_blank" rel="noopener">p. 41–46</a> worked example: 1750 rpm to 3500 rpm</span></li>
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=47" target="_blank" rel="noopener">p. 47</a> affinity laws for speed changes</span></li>
+          <li><span class="tag t-ex">Practice</span><span><a href="#examples">Example 4</a> (new speed and diameter) and <a href="#examples">Example 5</a> (refit with a variable speed drive)</span></li>
+        </ul></div>
+      <div><div class="lbl">Key equations (constant impeller diameter)</div>
+        <div class="eq">
+          <div>V̇<sub>n</sub>/V̇<sub>o</sub> = ω<sub>n</sub>/ω<sub>o</sub></div>
+          <div>H<sub>p,n</sub>/H<sub>p,o</sub> = (ω<sub>n</sub>/ω<sub>o</sub>)²</div>
+          <div>Ẇ<sub>n</sub>/Ẇ<sub>o</sub> = (ω<sub>n</sub>/ω<sub>o</sub>)³</div>
+          <div>η<sub>n</sub> = η<sub>o</sub></div>
+          <div class="src">Slide p. 47, Eqs. (20)–(23). When diameter also changes, equate V̇/(ωD³), gH<sub>p</sub>/(ω²D²) and Ẇ/(ρω³D⁵), as in the Example 4 solution.</div>
+        </div></div>
+    </div>
+    <div class="mright">
+      <div><div class="lbl">Key ideas</div>
+        <ul class="keys">
+          <li>The laws assume efficiency, head coefficient and power coefficient depend only weakly on the rotational Reynolds number.</li>
+          <li>They are estimates. In the slide example they predicted 10 hp and 64% at 3500 rpm, while the manufacturer's curve gave 9.5 hp and 67.5%. Close, but not exact.</li>
+          <li>The affinity laws scale <b>pump</b> performance. They do not tell you the new operating point of the pump/pipe system. For that you still need the system curve (Example 5, part d).</li>
+        </ul></div>
+      <div><div class="lbl">Check yourself</div>
+        <details><summary>A pump gives 80 gpm, 40 ft and 1.25 hp at 1750 rpm. Estimate its performance at 3500 rpm.</summary><div class="ans">Speed doubles, so flow × 2 = 160 gpm, head × 4 = 160 ft, power × 8 = 10 hp, efficiency unchanged at 64%. (Slides p. 42–46)</div></details>
+        <details><summary>Why did the affinity-law point and the new operating point in Example 5 not match?</summary><div class="ans">The point from part (b) lies on the scaled pump curve, but the operating point in part (c) is where the new pump curve meets the system curve. The affinity laws scale pump performance curves; they do not scale pump/pipe system operating points. (Example 5 solution, part d)</div></details>
+      </div>
+    </div>
+  </article>
+
+  <!-- M6 -->
+  <article class="module" id="m6">
+    <div class="mhead"><div class="num">Module 6</div><h2>Design practice</h2>
+      <p>Practical guidelines that tie the earlier modules together when you lay out a real pump and pipe system.</p></div>
+    <div class="mleft">
+      <div><div class="lbl">Study</div>
+        <ul class="steps">
+          <li><span class="tag t-slides">Slides</span><span><a href="lectures/Pumps_Lecture_Slides.pdf#page=48" target="_blank" rel="noopener">p. 48–55</a> design practices</span></li>
+        </ul></div>
+      <div><div class="lbl">Guidelines from the slides</div>
+        <ul class="keys">
+          <li><b>Economics:</b> lay out the network wisely and size pipes close to the economic diameter. A slightly larger pipe can allow for future flow increases. (p. 49–50)</li>
+          <li><b>Noise and vibration:</b> keep pressure drop to about 25–30 psi per 1000 ft for liquids. (p. 52)</li>
+          <li><b>Pump placement:</b> place the pump to avoid cavitation, with an NPSHa analysis, especially for suction lift. (p. 53)</li>
+          <li><b>Flow control:</b> single-speed motors need valves (usually globe valves). Variable speed motors cost more, and the affinity laws estimate their effect. (p. 53)</li>
+          <li><b>Valve placement:</b> avoid valves for flow control if possible. If you need one, put it on the discharge line. (p. 54)</li>
+          <li><b>Entrained gas:</b> give the pipe a slight rise in the flow direction and remove gas with bleed ports or expansion tanks. (p. 55)</li>
+        </ul></div>
+    </div>
+    <div class="mright">
+      <div><div class="lbl">Bringing it together</div>
+        <p style="font-size:.97rem">Most real pump problems use several modules at once. For example, Example 2 needs Module 2 (reading the chart) and Module 3 (system curve and selection), and Example 3 needs Module 3 (friction and minor losses) and Module 4 (NPSH). When a problem feels large, list which module each part belongs to.</p></div>
+    </div>
+  </article>
+</section>
+
+<!-- EXAMPLES -->
+<section class="sec" id="examples" aria-labelledby="ex-h">
+  <div><div class="eyebrow">Practice</div><h2 id="ex-h">Example problems</h2></div>
+  <p style="max-width:78ch">Read the problem statement on the slide, work it out on paper, and only then open the solution pages. The final answers are hidden below so you can check your numbers without seeing the full working.</p>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Topic and module</th><th>Problem statement</th><th>Worked solution</th><th>Final answers</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Pump head, head breakdown, motor power and annual operating cost (20% ethylene glycol)<br><span class="tag t-slides" style="display:inline-block;margin-top:6px">Module 2</span></td>
+        <td><a href="lectures/Pumps_Lecture_Slides.pdf#page=56" target="_blank" rel="noopener">Slide p. 56</a></td>
+        <td><a href="example-problems/Example_Problems_Solutions.pdf#page=1" target="_blank" rel="noopener">Pages 1–2</a></td>
+        <td><details><summary>Show</summary><div class="ans">(a) H<sub>p</sub> = 27.20 m<br>(b) pressure 96.53%, velocity 3.18%, elevation 0.29%<br>(c) Ẇ<sub>p</sub> = 5.046 kW<br>(d) $1,259.53 per year</div></details></td></tr>
+      <tr><td>2</td><td>System curve to 800 gpm and selecting a Bell &amp; Gossett e-1531 pump for 500 gpm of water<br><span class="tag t-slides" style="display:inline-block;margin-top:6px">Modules 2–3</span></td>
+        <td><a href="lectures/Pumps_Lecture_Slides.pdf#page=57" target="_blank" rel="noopener">Slide p. 57</a></td>
+        <td><a href="example-problems/Example_Problems_Solutions.pdf#page=2" target="_blank" rel="noopener">Pages 2–5</a></td>
+        <td><details><summary>Show</summary><div class="ans">Model 3BD at 1770 rpm, 8.5-inch impeller (reducers needed for its 3-inch ports). Operating point about 505 gpm at 59 ft, 82% efficiency, about 9 hp. The solution notes other pumps may also work.</div></details></td></tr>
+      <tr><td>3</td><td>Maximum pump height above the tank to avoid cavitation, and its dependence on water temperature (10–80 °C)<br><span class="tag t-slides" style="display:inline-block;margin-top:6px">Modules 3–4</span></td>
+        <td><a href="lectures/Pumps_Lecture_Slides.pdf#page=58" target="_blank" rel="noopener">Slide p. 58</a></td>
+        <td><a href="example-problems/Example_Problems_Solutions.pdf#page=6" target="_blank" rel="noopener">Pages 6–8</a></td>
+        <td><details><summary>Show</summary><div class="ans">(a) Δz = 3.68 m (with NPSHr = 3.4 m and a 1 m safety factor)<br>(b) Δz falls as temperature rises; above about 76 °C the pump must be below the water surface.</div></details></td></tr>
+      <tr><td>4</td><td>Affinity laws with a new impeller diameter (9 in) and speed (1150 rpm)<br><span class="tag t-slides" style="display:inline-block;margin-top:6px">Module 5</span></td>
+        <td><a href="lectures/Pumps_Lecture_Slides.pdf#page=59" target="_blank" rel="noopener">Slide p. 59</a></td>
+        <td><a href="example-problems/Example_Problems_Solutions.pdf#page=9" target="_blank" rel="noopener">Page 9</a></td>
+        <td><details><summary>Show</summary><div class="ans">V̇ = 34.4 L/s, H<sub>p</sub> = 3.12 m, Ẇ = 1.43 kW, η unchanged (η<sub>n</sub> = η<sub>o</sub>)</div></details></td></tr>
+      <tr><td>5</td><td>Operating point, then a refit to a 12-inch impeller at 1480 rpm<br><span class="tag t-slides" style="display:inline-block;margin-top:6px">Modules 3 and 5</span></td>
+        <td><a href="lectures/Pumps_Lecture_Slides.pdf#page=60" target="_blank" rel="noopener">Slide p. 60</a></td>
+        <td><a href="example-problems/Example_Problems_Solutions.pdf#page=9" target="_blank" rel="noopener">Pages 9–12</a></td>
+        <td><details><summary>Show</summary><div class="ans">Original operating point: 507 gpm, 121 ft<br>Affinity-law point: 379 gpm, 80 ft<br>New operating point: 400 gpm, 75 ft<br>They differ because the affinity laws scale pump curves, not system operating points.</div></details></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- GLOSSARY -->
+<section class="sec" id="glossary" aria-labelledby="gl-h">
+  <div><div class="eyebrow">Reference</div><h2 id="gl-h">Key terms</h2></div>
+  <dl class="gl">
+    <div><dt>Pump head, H<sub>p</sub></dt><dd>Energy the pump adds to the liquid, expressed as a height of that liquid: discharge head minus suction head.<span class="where">Module 2 · slide p. 7</span></dd></div>
+    <div><dt>Brake horsepower, Ẇ<sub>bhp</sub></dt><dd>Shaft power into the impeller, T ω. This is the power printed on pump curves.<span class="where">Module 2 · slides p. 7, 14</span></dd></div>
+    <div><dt>Pump efficiency, η<sub>p</sub></dt><dd>Power delivered to the liquid divided by brake horsepower.<span class="where">Module 2 · slide p. 7</span></dd></div>
+    <div><dt>Iso-efficiency and iso-power lines</dt><dd>Lines on a pump chart joining points of equal efficiency and equal input power across the impeller curves.<span class="where">Module 2 · Animation Ch. 7</span></dd></div>
+    <div><dt>Cutoff head</dt><dd>The no-flow end of a pump curve: highest head, zero flow.<span class="where">Module 2 · slide p. 8</span></dd></div>
+    <div><dt>Free delivery</dt><dd>The no-head end of a pump curve: the liquid passes through as if the pump were a pipe.<span class="where">Module 2 · slide p. 9</span></dd></div>
+    <div><dt>Best efficiency point (bep)</dt><dd>The flow at which an impeller curve reaches its maximum efficiency.<span class="where">Modules 2–3 · Animation Ch. 11–12</span></dd></div>
+    <div><dt>System curve</dt><dd>System head as a function of flow rate: the pressure, velocity and elevation heads plus losses the pump must overcome.<span class="where">Module 3 · slide p. 16</span></dd></div>
+    <div><dt>Operating point</dt><dd>Where the pump curve and the system curve intersect.<span class="where">Module 3 · slide p. 27</span></dd></div>
+    <div><dt>Cavitation</dt><dd>Liquid boils where local pressure falls to vapor pressure; the bubbles collapse in higher pressure and erode the impeller.<span class="where">Module 4 · slide p. 29 · Animation 2</span></dd></div>
+    <div><dt>NPSH available, NPSHa</dt><dd>Head at the pump suction above the vapor pressure head. Set by the system; you calculate it.<span class="where">Module 4 · slide p. 31</span></dd></div>
+    <div><dt>NPSH required, NPSHr</dt><dd>Suction head the pump needs, determined by the manufacturer and shown on the pump curve.<span class="where">Module 4 · slide p. 32</span></dd></div>
+    <div><dt>Suction lift vs flooded suction</dt><dd>Liquid surface below the pump (lift) or above it (flooded). Lift systems are more prone to cavitation.<span class="where">Module 4 · slides p. 30–31</span></dd></div>
+    <div><dt>Affinity laws</dt><dd>Scaling rules for flow, head and power when pump speed or impeller diameter changes.<span class="where">Module 5 · slide p. 47</span></dd></div>
+  </dl>
+</section>
+
+<footer>
+  <p><b>For class teaching purposes only.</b> Source: Penoncello, <em>Thermal Energy Systems: Design and Analysis</em>, 2nd ed. The lecture slides, animations and example solutions here are Thermal Fluids course materials based on that book. The slide numbers printed inside Animation 1 (134–148) refer to that textbook's slide set, not to the lecture PDF here; the matching lecture pages are listed in Modules 1–2.</p>
+  <p>The cavitation animation uses an illustrative pump, as its own footnote explains. Use manufacturer curves for real design work.</p>
+</footer>
+
+</div>
+</body>
+</html>

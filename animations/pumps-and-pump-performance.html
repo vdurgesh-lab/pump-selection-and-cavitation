@@ -1,0 +1,628 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Pumps and Pump Performance</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&family=STIX+Two+Text:ital@0;1&display=swap">
+<style>/* Layout: an engineer's graph-pad sheet as the stage, a running script beside it, a transport below. */
+:root{
+  --paper:#E9EFEA; --sheet:#F7FAF6; --ink:#13292E; --muted:#51666A; --grid:#D3E0D8; --grid2:#A9C0B5;
+  --water:#0A72B5; --water-t:#BFDDEF; --pressure:#C43D18; --kinetic:#7B3FB5; --eff:#14804F; --power:#A86200;
+  --plate:#13292E; --plate-fg:#F7FAF6; --steel:#8FA3A6; --steel-t:#D7E0DF;
+  --f-display:"Barlow Condensed","Arial Narrow",sans-serif; --f-body:"IBM Plex Sans",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace; --f-math:"STIX Two Text","Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0D1A1E; --sheet:#132429; --ink:#E4EEE8; --muted:#94A9A8; --grid:#21383C; --grid2:#355457;
+  --water:#54BBF2; --water-t:#1B4A63; --pressure:#FF8259; --kinetic:#BC92F2; --eff:#54D091; --power:#EBAE42;
+  --plate:#E4EEE8; --plate-fg:#132429; --steel:#7D9496; --steel-t:#2A4146; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0D1A1E; --sheet:#132429; --ink:#E4EEE8; --muted:#94A9A8; --grid:#21383C; --grid2:#355457;
+  --water:#54BBF2; --water-t:#1B4A63; --pressure:#FF8259; --kinetic:#BC92F2; --eff:#54D091; --power:#EBAE42;
+  --plate:#E4EEE8; --plate-fg:#132429; --steel:#7D9496; --steel-t:#2A4146; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 var(--f-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 24px}
+.wrap{max-width:1280px;margin-inline:auto;display:grid;gap:10px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 16px}
+h1{font:600 clamp(26px,3.2vw,36px)/1.05 var(--f-display);margin:0;letter-spacing:.005em;text-wrap:balance}
+header p{margin:0;color:var(--muted);font-size:13px}
+#chapters{display:flex;gap:2px;overflow-x:auto;scrollbar-width:thin;border-bottom:2px solid var(--ink)}
+#chapters button{flex:none;display:flex;gap:6px;align-items:baseline;background:none;border:0;color:var(--muted);font:500 16px/1 var(--f-display);padding:8px 9px 7px;cursor:pointer;white-space:nowrap;letter-spacing:.01em}
+#chapters button b{font:500 11px/1 var(--f-mono)}
+#chapters button:hover{color:var(--ink)}
+#chapters button[aria-current="true"]{background:var(--ink);color:var(--sheet)}
+.player{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,340px);gap:14px;align-items:start}
+.stagebox{min-width:0;display:grid;gap:8px}
+#stage{display:block;width:100%;height:auto;background:var(--sheet);border:1px solid var(--grid2);user-select:none}
+.transport{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.transport button{background:var(--sheet);color:var(--ink);border:1px solid var(--grid2);font:500 13px/1 var(--f-body);padding:8px 11px;cursor:pointer;min-height:36px}
+.transport button:hover{border-color:var(--ink)}
+#play{background:var(--ink);color:var(--sheet);border-color:var(--ink);min-width:72px}
+.track{position:relative;flex:1 1 180px;min-width:140px;height:36px;display:flex;align-items:center}
+#scrub{width:100%;margin:0;accent-color:var(--water);position:relative;z-index:1;background:transparent}
+.ticks{position:absolute;inset:auto 0 3px;height:6px;pointer-events:none}
+.ticks i{position:absolute;width:2px;height:6px;background:var(--grid2)}
+#time{font:500 12px/1 var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+button:focus-visible,input:focus-visible{outline:2px solid var(--water);outline-offset:2px}
+.panel{min-width:0;display:grid;gap:8px;align-content:start}
+.eyebrow{font:500 11.5px/1.3 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.panel h2{font:600 26px/1.1 var(--f-display);margin:0;text-wrap:balance}
+#cues{list-style:none;margin:0;padding:0;display:grid;gap:2px;overflow-y:auto;max-height:min(66vh,560px);scrollbar-width:thin}
+#cues button{all:unset;display:block;box-sizing:border-box;width:100%;padding:7px 10px;border-left:3px solid var(--grid2);color:var(--muted);cursor:pointer;font-size:14px;line-height:1.42}
+#cues button:focus-visible{outline:2px solid var(--water);outline-offset:-2px}
+#cues .past button{color:var(--ink);opacity:.68}
+#cues .now button{color:var(--ink);border-left-color:var(--water);background:var(--sheet)}
+#cues .eq{display:block;margin-top:6px;font-size:15px}
+.m{font-family:var(--f-math);font-size:1.12em;white-space:nowrap}
+.m i{font-style:italic}.m sub{font-size:.72em;line-height:0}
+.eq{overflow-x:auto;max-width:100%;scrollbar-width:thin}
+.frac{display:inline-grid;vertical-align:middle;text-align:center;line-height:1.12;margin-inline:2px}
+.frac>span:first-child{border-bottom:1px solid currentColor;padding-inline:3px}
+.note{font-size:12.5px;color:var(--muted);margin:0;line-height:1.4}
+/* explore panel */
+.segs{display:flex;flex-wrap:wrap;gap:4px}
+.segs button{flex:1 0 auto;background:var(--sheet);color:var(--ink);border:1px solid var(--grid2);font:500 14px/1 var(--f-mono);padding:9px 8px;cursor:pointer}
+.segs button[aria-pressed="true"]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+.read{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--grid2);border:1px solid var(--grid2)}
+.read div{background:var(--sheet);padding:7px 9px;min-width:0}
+.read dt{font-size:12px;color:var(--muted);line-height:1.25}
+.read dd{margin:2px 0 0;font:500 20px/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
+.read dd small{font-size:12px;font-weight:400;color:var(--muted)}
+dl{margin:0}
+.pill{display:inline-block;font:500 12.5px/1 var(--f-mono);padding:6px 9px;border:1.5px solid currentColor}
+#mini{display:block;width:100%;height:auto;background:var(--sheet);border:1px solid var(--grid2)}
+/* svg */
+#stage text,#mini text{font-family:var(--f-mono);fill:var(--ink)}
+#stage .d{font-family:var(--f-display);font-weight:600;letter-spacing:.015em}
+#stage .ma{font-family:var(--f-math)}
+#stage .halo{paint-order:stroke;stroke:var(--sheet);stroke-width:4px;stroke-linejoin:round}
+@media (max-width:900px){.player{grid-template-columns:minmax(0,1fr)}#cues{max-height:none;overflow:visible}}
+</style>
+<div class="wrap">
+<header>
+  <h1>Pumps and Pump Performance</h1>
+  <p>An animated walk through slides 134–148, Chapter 4 of <em>Thermal Energy Systems: Design and Analysis</em>, 2nd ed. (Penoncello)</p>
+</header>
+<nav id="chapters" aria-label="Chapters"></nav>
+<main class="player">
+  <div class="stagebox">
+    <svg id="stage" viewBox="0 0 760 540" role="img" aria-label="Animated diagram for the current chapter"></svg>
+    <div class="transport" id="transport">
+      <button id="play" type="button">Pause</button>
+      <button id="prev" type="button">Previous</button>
+      <button id="next" type="button">Next</button>
+      <button id="again" type="button">Replay</button>
+      <button id="speed" type="button" aria-label="Playback speed">1×</button>
+      <div class="track"><input id="scrub" type="range" min="0" max="1000" value="0" aria-label="Position in chapter"><div class="ticks" id="ticks"></div></div>
+      <span id="time">0:00 / 0:00</span>
+    </div>
+  </div>
+  <aside class="panel" aria-live="off">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h2 id="title"></h2>
+    <div id="panelbody"></div>
+  </aside>
+</main>
+</div>
+<script>
+const DATA={"impellers":{"7":{"label":"7\"","H":[[0,201.7],[60,201.5],[117,200.8],[174,196.8],[208,190.5],[240,182],[260,175],[286,165],[303,157.7],[324,145.7],[349,128.5]],"eta":[[0,0],[30,0.21],[65,0.4],[90,0.5],[124,0.6],[144,0.65],[161,0.68],[175,0.7],[194,0.72],[209,0.73],[240,0.74],[259,0.745],[286,0.74],[305,0.73],[317,0.72],[333,0.7],[349,0.68]],"bep":259},"6.5":{"label":"6\u00bd\"","H":[[0,170.5],[60,170.5],[100,170.2],[130,168.5],[150,165.5],[175,160],[200,153.5],[230,144.5],[258,134],[286,121.6],[303,110.7],[326,96.5]],"eta":[[0,0],[30,0.21],[63,0.4],[85,0.5],[112,0.6],[133,0.65],[151,0.68],[169,0.7],[189,0.72],[207,0.73],[228,0.736],[253,0.73],[266,0.72],[285,0.7],[296,0.68],[316,0.65],[326,0.63]],"bep":228},"6":{"label":"6\"","H":[[0,144],[60,144],[100,143],[135,140],[163,135.3],[195,126.5],[223,116],[251,104.7],[275,91.6],[289,84]],"eta":[[0,0],[30,0.21],[60,0.4],[80,0.5],[103.5,0.6],[128,0.65],[147,0.68],[168,0.7],[195,0.72],[208,0.722],[222,0.72],[248,0.7],[260,0.68],[276,0.65],[289,0.63]],"bep":208},"5.5":{"label":"5\u00bd\"","H":[[0,118],[68,118.3],[100,117.2],[128,114.8],[163,108],[191,99.2],[216,88.8],[244,76.5],[268,64]],"eta":[[0,0],[28,0.21],[56,0.4],[74,0.5],[100,0.6],[124.5,0.65],[147,0.68],[176,0.7],[195,0.705],[208,0.7],[225,0.68],[240,0.65],[262,0.6],[268,0.585]],"bep":195},"5":{"label":"5\"","H":[[0,96],[68,96],[103.5,94.3],[128,91],[152.6,86],[177,79.3],[202,69],[224.5,58.8]],"eta":[[0,0],[25,0.21],[50,0.4],[70,0.5],[102,0.6],[126,0.65],[150,0.67],[178,0.675],[204,0.65],[224.5,0.6]],"bep":178}},"contours":[{"e":40,"p":[[50,96],[56,118],[60,144],[63,170],[65,201.5]],"at":"end"},{"e":50,"p":[[70,96],[74,118],[80,143],[85,170],[90,201.5]],"at":"end"},{"e":60,"p":[[102,94.3],[100,117],[103.5,143],[112,170],[124,200.8]],"at":"end"},{"e":60,"p":[[224.5,58.8],[263,67.5]],"at":"end","low":true},{"e":65,"p":[[126,91],[124.5,115.5],[128,141],[133,168],[144,199]],"at":"end"},{"e":65,"p":[[204,69],[250,82.5],[314,102.5]],"at":"end","low":true},{"e":68,"p":[[161,197],[151,168],[147,143.5],[147,113.4],[151,99.8],[166.6,87.5],[191,82],[215.7,82],[233,87.5],[268,102.5],[303.4,119],[344,131]],"at":"both"},{"e":70,"p":[[175,196],[169,164],[168,140],[169,125.7],[173.6,108],[184,97],[202,91.5],[219,93],[240,102.5],[268,114.8],[303,131],[333,139]],"at":"both"},{"e":72,"p":[[194,192.5],[189.4,162.6],[189,143.5],[194.7,125.7],[208.7,116.7],[222.7,116.7],[254,127],[285.6,140.7],[317,152]],"at":"both"},{"e":73,"p":[[208.7,189.5],[207,162.6],[210.4,146],[222.7,136.6],[240,134.7],[261,139.4],[285.6,147.6],[305,157]],"at":"both"},{"e":74,"p":[[240,182],[238.5,172],[244,162.6],[258,157],[272.5,159.3],[286.5,165.5]],"at":"both"}],"power":[{"hp":5,"label":"5 HP","p":[[47,145],[66.6,136.6],[89,126],[117.5,108.8],[124.5,103.9],[159.6,83.4]]},{"hp":7.5,"label":"7\u00bd HP","p":[[50.9,192.6],[75.4,183],[98,169.5],[130,150],[161,130],[194.7,111],[233,87.5],[256,73.8],[277,62.9]]},{"hp":10,"label":"10 HP","p":[[117.5,202],[131.5,191],[159,173],[176,160],[207,139.9],[235,123],[263,105],[290,87.5],[306,76]]},{"hp":15,"label":"15 HP","p":[[266.6,166],[293.6,147.6],[321,128],[331,120.8]]},{"hp":20,"label":"20 HP","p":[[346,164],[372.5,146],[387.6,133.4]]}],"npsh":[[79,11],[198,11],[244,12.6],[286,17],[318,25.5],[345,36.5]]};
+'use strict';
+const NS='http://www.w3.org/2000/svg',TAU=Math.PI*2;
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,u)=>a+(b-a)*u;
+const rp=(t,a,b)=>{const u=clamp((t-a)/(b-a));return u*u*(3-2*u)};
+const lin=(t,a,b)=>clamp((t-a)/(b-a));
+function E(tag,a={},p){const e=document.createElementNS(NS,tag);if(tag==='path'&&!a.fill)e.style.fill='none';
+  for(const k in a){if(k==='fill'||k==='stroke'||k==='opacity')e.style[k]=a[k];else e.setAttribute(k,a[k]);}
+  if(p)p.appendChild(e);return e}
+function TX(p,x,y,s,a={}){const {size=16,anchor='start',cls='',rot,fill,weight}=a;const e=E('text',{x,y,'font-size':size,'text-anchor':anchor},p);
+  if(cls)e.setAttribute('class',cls);if(fill)e.style.fill=fill;if(weight)e.setAttribute('font-weight',weight);if(rot!=null)e.setAttribute('transform',`rotate(${rot} ${x} ${y})`);const str=String(s);if(str.includes('_')){str.split(/(_[a-z]+)/).forEach((part,i,all)=>{if(!part)return;const ts=E('tspan',{},e);if(part[0]==='_'){ts.textContent=part.slice(1);ts.setAttribute('font-size',size*.72);ts.setAttribute('dy',size*.22)}else{ts.textContent=part;if(i&&all[i-1])ts.setAttribute('dy',-size*.22)}})}else e.textContent=str;return e}
+const O=(e,v)=>{e.style.opacity=v;e.style.display=v<=.001?'none':''};
+function LN(p,x1,y1,x2,y2,stroke='var(--ink)',w=2,extra={}){return E('line',{x1,y1,x2,y2,stroke,'stroke-width':w,...extra},p)}
+function RC(p,x,y,w,h,fill='none',stroke,sw=2,extra={}){const a={x,y,width:w,height:h,fill,...extra};if(stroke){a.stroke=stroke;a['stroke-width']=sw}return E('rect',a,p)}
+function CI(p,cx,cy,r,fill='none',stroke,sw=2){const a={cx,cy,r,fill};if(stroke){a.stroke=stroke;a['stroke-width']=sw}return E('circle',a,p)}
+function arrow(p,x1,y1,x2,y2,c='var(--ink)',w=2.5,h=9){const g=E('g',{},p);const an=Math.atan2(y2-y1,x2-x1);
+  LN(g,x1,y1,x2-Math.cos(an)*h*.8,y2-Math.sin(an)*h*.8,c,w);
+  const pts=[[x2,y2],[x2-h*Math.cos(an-.45),y2-h*Math.sin(an-.45)],[x2-h*Math.cos(an+.45),y2-h*Math.sin(an+.45)]].map(q=>q.join()).join(' ');
+  E('polygon',{points:pts,fill:c},g);return g}
+function chip(p,x,y,s,c='var(--ink)',size=16,anchor='start'){const g=E('g',{},p),w=s.length*size*.6+16,h=size+12,x0=anchor==='end'?x-w:anchor==='middle'?x-w/2:x;
+  RC(g,x0,y-h/2,w,h,'var(--sheet)',c,1.8);const t=TX(g,x0+8,y+size*.36,s,{size,weight:500});t.style.fill=c;return g}
+/* smooth a coarse polyline (Catmull-Rom) into dense points */
+function smooth(P,n=10){if(P.length<3)return P.map(q=>q.slice());const out=[];for(let i=0;i<P.length-1;i++){const a=P[Math.max(i-1,0)],b=P[i],c=P[i+1],d=P[Math.min(i+2,P.length-1)];
+  for(let k=0;k<n;k++){const u=k/n,u2=u*u,u3=u2*u;out.push([0,1].map(j=>.5*(2*b[j]+(c[j]-a[j])*u+(2*a[j]-5*b[j]+4*c[j]-d[j])*u2+(3*b[j]-a[j]-3*c[j]+d[j])*u3)))}}
+  out.push(P[P.length-1].slice());return out}
+function pathD(P,u=1){if(u<=0||!P.length)return'';const n=(P.length-1)*clamp(u),m=Math.floor(n);let d='M'+P[0][0].toFixed(1)+' '+P[0][1].toFixed(1);
+  for(let i=1;i<=m;i++)d+='L'+P[i][0].toFixed(1)+' '+P[i][1].toFixed(1);
+  if(m<P.length-1&&n>m){const a=P[m],b=P[m+1],f=n-m;d+='L'+lerp(a[0],b[0],f).toFixed(1)+' '+lerp(a[1],b[1],f).toFixed(1)}return d}
+function at(P,u){const n=(P.length-1)*clamp(u),m=Math.min(Math.floor(n),P.length-2),f=n-m;return[lerp(P[m][0],P[m+1][0],f),lerp(P[m][1],P[m+1][1],f)]}
+/* monotone cubic so read-offs never overshoot the traced points */
+function mono(P){const n=P.length,x=P.map(q=>q[0]),y=P.map(q=>q[1]),d=[],m=[];for(let i=0;i<n-1;i++)d[i]=(y[i+1]-y[i])/(x[i+1]-x[i]);
+  m[0]=d[0];m[n-1]=d[n-2];for(let i=1;i<n-1;i++)m[i]=d[i-1]*d[i]<=0?0:2/(1/d[i-1]+1/d[i]);
+  return v=>{v=clamp(v,x[0],x[n-1]);let i=0;while(i<n-2&&v>x[i+1])i++;const h=x[i+1]-x[i],u=(v-x[i])/h,u2=u*u,u3=u2*u;
+    return(2*u3-3*u2+1)*y[i]+(u3-2*u2+u)*h*m[i]+(-2*u3+3*u2)*y[i+1]+(u3-u2)*h*m[i+1]}}
+const IMP={};for(const k in DATA.impellers){const v=DATA.impellers[k];const qEnd=v.H[v.H.length-1][0];IMP[k]={key:k,label:v.label,H:mono(v.H),eta:mono(v.eta),qEnd,bep:v.bep}}
+const WHP=(q,h)=>62.4*q/448.83*h/550;
+/* the 2AC chart, traced from slide 142 */
+function makeChart(p,o={}){const {x=74,y=14,w=628,h=470}=o,g=E('g',{},p),X=q=>x+q/450*w,Y=f=>y+h-f/220*h;
+  for(let q=0;q<=450;q+=25)LN(g,X(q),y,X(q),y+h,q%50?'var(--grid)':'var(--grid2)',1);
+  for(let f=0;f<=220;f+=10)LN(g,x,Y(f),x+w,Y(f),f%20?'var(--grid)':'var(--grid2)',1);
+  RC(g,x,y,w,h,'none','var(--ink)',1.6);
+  for(let q=0;q<=450;q+=50)TX(g,X(q),y+h+20,q,{size:15,anchor:'middle'});
+  for(let f=0;f<=220;f+=20)TX(g,x-7,Y(f)+5,f,{size:15,anchor:'end'});
+  for(const f of[0,20,40])TX(g,x+w+6,Y(f)+5,f,{size:15});
+  TX(g,x+w/2,y+h+43,'CAPACITY IN U.S. GALLONS PER MINUTE',{size:15,anchor:'middle',weight:500});
+  TX(g,22,y+h/2,'TOTAL HEAD IN FEET',{size:15,anchor:'middle',rot:-90,weight:500});
+  TX(g,x+w+44,y+h-50,'NPSH (FT)',{size:13,anchor:'middle',rot:-90,weight:500});
+  const c={g,X,Y,x,y,w,h};
+  c.addPlate=()=>{const pg=E('g',{},g);RC(pg,X(330),y,x+w-X(330),Y(178)-y,'var(--plate)');const a=TX(pg,(X(330)+x+w)/2,y+44,'2AC',{size:44,anchor:'middle',cls:'d'});a.style.fill='var(--plate-fg)';const b=TX(pg,(X(330)+x+w)/2,y+70,'3500 R.P.M.',{size:20,anchor:'middle',cls:'d'});b.style.fill='var(--plate-fg)';return pg};
+  c.impCurve=k=>{const I=IMP[k],pts=[];for(let i=0;i<=80;i++){const q=I.qEnd*i/80;pts.push([X(q),Y(I.H(q))])}return pts};
+  c.addImps=(keys=Object.keys(IMP))=>{c.imp={};const lg=E('g',{},g);for(const k of keys){const pts=c.impCurve(k),e=E('path',{d:pathD(pts),stroke:'var(--ink)','stroke-width':3,'stroke-linecap':'round'},lg);
+      const t=TX(lg,X(6),Y(IMP[k].H(6))-6,IMP[k].label,{size:17,weight:500,cls:'halo'});c.imp[k]={e,t,pts}}return lg};
+  c.addEff=()=>{c.eff=[];const lg=E('g',{},g);for(const k of DATA.contours){const pts=smooth(k.p.map(q=>[X(q[0]),Y(q[1])]),8),e=E('path',{d:pathD(pts),stroke:'var(--eff)','stroke-width':1.5},lg),lb=[];
+      const last=k.p[k.p.length-1],first=k.p[0],sz=13,col='var(--eff)';
+      if(k.e===74){lb.push(TX(lg,X(first[0])-6,Y(first[1])-6,'74%',{size:sz,cls:'halo',rot:-50,fill:col}));lb.push(TX(lg,X(last[0])+4,Y(last[1])-3,'74%',{size:sz,cls:'halo',rot:-50,fill:col}))}
+      else if(k.low)lb.push(TX(lg,X(last[0])+5,Y(last[1])+4,k.e+'%',{size:sz,cls:'halo',fill:col}));
+      else if(k.at==='end')lb.push(TX(lg,X(last[0])+1,Y(last[1])-5,k.e+'%',{size:sz,cls:'halo',rot:-60,fill:col}));
+      else{lb.push(TX(lg,X(first[0])+1,Y(first[1])-5,k.e+'%',{size:sz,cls:'halo',rot:-60,fill:col}));lb.push(TX(lg,X(last[0])+5,Y(last[1])-4,k.e+'%',{size:sz,cls:'halo',rot:-28,fill:col}))}
+      c.eff.push({e:k.e,el:e,lb,pts})}
+    const a=TX(lg,X(259),Y(175)-9,'74.5%',{size:13,cls:'halo',fill:'var(--eff)',rot:-28});c.effPeak=a;return lg};
+  c.addPow=()=>{c.pow=[];const lg=E('g',{},g);for(const k of DATA.power){const pts=k.p.map(q=>[X(q[0]),Y(q[1])]),e=E('path',{d:pathD(pts),stroke:'var(--power)','stroke-width':3.2,'stroke-dasharray':'26 7'},lg);
+      const l=pts[pts.length-1],t=TX(lg,l[0]+4,l[1]+12,k.label,{size:14,cls:'halo',rot:36,fill:'var(--power)',weight:500});c.pow.push({hp:k.hp,el:e,t,pts})}return lg};
+  c.addNpsh=()=>{const pts=smooth(DATA.npsh.map(q=>[X(q[0]),Y(q[1])]),8),lg=E('g',{},g);c.npsh=E('path',{d:pathD(pts),stroke:'var(--ink)','stroke-width':3},lg);c.npshPts=pts;c.npshT=TX(lg,X(190),Y(11)-9,'NPSH REQ',{size:14,weight:500});return lg};
+  return c}
+const SCENES=[];
+
+/* side-section of an impeller, spins and carries particles */
+function impeller(p,kind,cx,cy,s){const g=E('g',{transform:`translate(${cx} ${cy}) scale(${s})`},p);
+  const G={centrifugal:{front:[[-30,26],[-8,34],[6,60],[8,88]],back:[[-14,6],[8,10],[24,30],[26,88]],st:[[-100,16],[-40,16],[-6,22],[12,44],[17,70],[17,104]],b:[0,20,17,88],sx:26},
+    propeller:{front:[[-14,62],[14,62]],back:[[-14,12],[14,12]],st:[[-100,38],[-40,38],[40,38],[100,38]],b:[-10,13,10,61],sx:38,wall:1},
+    mixed:{front:[[-30,30],[-5,36],[22,58],[46,84]],back:[[-25,8],[0,10],[30,24],[64,62]],st:[[-100,19],[-40,19],[-6,23],[24,42],[56,76],[84,104]],b:[-14,16,54,72],sx:58}}[kind];
+  const reg=G=>{const a=smooth(G.front,6),b=smooth(G.back,6).reverse();return a.concat(b)};
+  for(const sg of[1,-1]){const r=reg(G).map(q=>[q[0],q[1]*sg]);E('path',{d:pathD(r)+'Z',fill:'var(--steel-t)',stroke:'var(--ink)','stroke-width':2/s*.8},g)}
+  RC(g,G.sx,-6,100-G.sx,12,'var(--steel)');
+  if(G.wall){E('path',{d:'M-30 0 Q-22 -13 -8 -13 L26 -13 Q40 -10 42 -6 L42 6 Q40 10 26 13 L-8 13 Q-22 13 -30 0Z',fill:'var(--steel)'},g);for(const sg of[1,-1])LN(g,-100,sg*66,100,sg*66,'var(--ink)',3/s*.8)}
+  LN(g,-100,0,-34,0,'var(--grid2)',1,{'stroke-dasharray':'8 5'});
+  const blades=[];for(let i=0;i<6;i++)blades.push(LN(g,0,0,0,0,'var(--ink)',2.6/s*.8));
+  const st=smooth(G.st,8),parts=[];for(const sg of[1,-1])for(let i=0;i<6;i++)parts.push({c:CI(g,0,0,3.4,'var(--water)'),sg,o:i/6});
+  return{g,draw(c,sp=.32){const [a,b,d,e]=G.b;blades.forEach((l,i)=>{const th=c*2.4+i*TAU/6,cs=Math.cos(th);l.setAttribute('x1',a);l.setAttribute('y1',(b*cs).toFixed(1));l.setAttribute('x2',d);l.setAttribute('y2',(e*cs).toFixed(1));l.style.opacity=Math.sin(th)>0?1:.2});
+    parts.forEach(q=>{const[u,v]=at(st,(c*sp+q.o+(q.sg>0?0:.08))%1);q.c.setAttribute('cx',u.toFixed(1));q.c.setAttribute('cy',(v*q.sg).toFixed(1))})}}}
+const Mx=s=>`<span class="m">${s}</span>`,Wd='<i>Ẇ</i>',Vd='<i>V̇</i>',md='<i>ṁ</i>',frac=(a,b)=>`<span class="frac"><span>${a}</span><span>${b}</span></span>`;
+
+SCENES.push({id:'families',name:'Families',slide:'Slide 134',title:'Two families of pumps',dur:37,cues:[
+ {t:0,h:'Every pump adds energy to a liquid. Pumps are classified by how that energy gets in, which gives two families: positive displacement and dynamic.'},
+ {t:7,h:'<b>Reciprocating</b> positive displacement. A piston, plunger, diaphragm or bellows moves back and forth, and valves direct each stroke of liquid out.'},
+ {t:14,h:'<b>Rotary</b> positive displacement. Vanes, screws or lobes turn and carry pockets of liquid from inlet to outlet.'},
+ {t:20,h:'<b>Dynamic</b> pumps use a rotating impeller. The direction the impeller sends the liquid sets the type: radial is centrifugal, axial is propeller, and a combination is mixed.'},
+ {t:31,h:'The rest of this section follows the <b>centrifugal</b> pump.'}],
+ build(r){LN(r,380,20,380,520,'var(--grid2)',1.2);
+  TX(r,20,38,'POSITIVE DISPLACEMENT',{size:25,cls:'d'});TX(r,400,38,'DYNAMIC',{size:25,cls:'d'});
+  /* reciprocating */
+  const A=E('g',{},r);TX(A,20,74,'Reciprocating',{size:21,cls:'d'});
+  RC(A,90,118,190,62,'var(--sheet)','var(--ink)',3);const fluid=RC(A,150,120,130,58,'var(--water-t)');
+  const up=RC(A,280,88,34,120,'var(--water-t)','var(--ink)',3);
+  RC(A,280,120,4,58,'var(--water-t)');
+  const pis=RC(A,140,120,16,58,'var(--steel)','var(--ink)',2),rod=LN(A,30,149,140,149,'var(--steel)',8);
+  const vT=LN(A,282,108,312,108,'var(--pressure)',4),vB=LN(A,282,190,312,190,'var(--pressure)',4);
+  const aT=arrow(A,297,84,297,56,'var(--water)',4,12),aB=arrow(A,297,242,297,214,'var(--water)',4,12);
+  TX(A,330,76,'out',{size:15,anchor:'end'});TX(A,330,238,'in',{size:15,anchor:'end'});
+  TX(A,20,262,'pistons, plungers, diaphragms, bellows',{size:15});
+  /* rotary */
+  const B=E('g',{},r);TX(B,20,300,'Rotary',{size:21,cls:'d'});
+  RC(B,60,388,90,32,'var(--water-t)','var(--ink)',2.5);RC(B,230,388,90,32,'var(--water-t)','var(--ink)',2.5);
+  RC(B,140,316,100,176,'var(--water-t)','var(--ink)',3,{rx:50});
+  const lobe=(cy)=>{const g=E('g',{},B);const q=E('g',{},g);CI(q,-23,0,17,'var(--steel-t)','var(--ink)',2);CI(q,23,0,17,'var(--steel-t)','var(--ink)',2);RC(q,-23,-12,46,24,'var(--steel-t)');CI(q,0,0,4,'var(--ink)');g.setAttribute('transform',`translate(190 ${cy})`);return q};
+  const L1=lobe(373),L2=lobe(435);
+  arrow(B,24,404,62,404,'var(--water)',4,12);arrow(B,322,404,362,404,'var(--water)',4,12);
+  TX(B,20,512,'vanes, screws, lobes',{size:15});
+  /* dynamic rows */
+  const rows=[['centrifugal','Centrifugal','rotating impeller,','radial direction',122],['propeller','Propeller','rotating impeller,','axial direction',272],['mixed','Mixed','radial and axial','motion combined',422]].map(x=>{
+    const g=E('g',{},r),im=impeller(g,x[0],474,x[4],.64);TX(g,558,x[4]-18,x[1],{size:23,cls:'d'});TX(g,558,x[4]+6,x[2],{size:14});TX(g,558,x[4]+25,x[3],{size:14});return{g,im}});
+  const hl=RC(r,396,50,356,144,'none','var(--water)',3);
+  const right=rows.map(x=>x.g);
+  return(t,c)=>{const dr=(Math.sin(c*1.7)+1)/2,xp=112+dr*96,push=Math.cos(c*1.7)>0;
+   pis.setAttribute('x',xp);rod.setAttribute('x2',xp);fluid.setAttribute('x',xp+16);fluid.setAttribute('width',280-xp-16);
+   vT.setAttribute('x2',push?304:312);vT.setAttribute('y2',push?96:108);vB.setAttribute('x2',push?312:304);vB.setAttribute('y2',push?190:178);O(aT,push?1:.15);O(aB,push?.15:1);
+   L1.setAttribute('transform',`rotate(${c*60})`);L2.setAttribute('transform',`rotate(${-c*60+90})`);
+   const dimA=t<7?.75:t<14?1:t<20?.3:.35,dimB=t<7?.75:t>=14&&t<20?1:.3;O(A,dimA);O(B,dimB);
+   const f=t<20?.42:1;rows.forEach((x,i)=>{O(x.g,t>=31&&i?.3:f);x.im.draw(c)});O(hl,rp(t,31,32))}}});
+
+SCENES.push({id:'impellers',name:'Impellers',slide:'Slide 135',title:'Which way the impeller sends the liquid',dur:28,cues:[
+ {t:0,h:'These are side sections of three dynamic impellers. Liquid arrives from the left along the shaft axis in all three. The difference is where it leaves.'},
+ {t:5,h:'<b>Centrifugal.</b> The liquid enters at the eye, turns 90°, and leaves in the radial direction, away from the shaft.'},
+ {t:12,h:'<b>Propeller.</b> The blades push the liquid along the shaft. It leaves in the axial direction.'},
+ {t:18,h:'<b>Mixed.</b> The liquid moves outward and along the shaft at the same time, a combination of radial and axial motion.'}],
+ build(r){const cols=[['centrifugal',132,'Centrifugal','leaves radially',90],['propeller',380,'Propeller','leaves axially',0],['mixed',628,'Mixed','radial + axial',45]].map(x=>{const g=E('g',{},r);
+    TX(g,x[1],64,x[2],{size:28,cls:'d',anchor:'middle'});const im=impeller(g,x[0],x[1]-4,258,1.08);
+    TX(g,x[1],426,x[3],{size:18,anchor:'middle',weight:500});
+    /* direction dial */
+    const cx=x[1],cy=478;CI(g,cx,cy,28,'none','var(--grid2)',1.5);LN(g,cx-28,cy,cx+28,cy,'var(--grid2)',1,{'stroke-dasharray':'3 3'});const a=x[4]*Math.PI/180;arrow(g,cx,cy,cx+Math.cos(a)*26,cy-Math.sin(a)*26,'var(--water)',3.5,10);
+    return{g,im}});
+  return(t,c)=>{cols.forEach((x,i)=>{const on=[[5,12],[12,18],[18,99]][i];O(x.g,t<5||(t>=on[0]&&t<on[1])||t>=24?1:.28);x.im.draw(c)})}}});
+
+SCENES.push({id:'housings',name:'Housings',slide:'Slide 136',title:'The same idea in different housings',dur:28,cues:[
+ {t:0,h:'<b>End suction.</b> Suction comes straight into the end of the casing along the shaft. Discharge leaves from the top.'},
+ {t:6,h:'<b>Inline.</b> Suction and discharge sit on one straight line, so the pump drops into a run of pipe with the motor above.'},
+ {t:12,h:'<b>Split case.</b> The casing separates along the shaft, and the impeller sits between two bearings.'},
+ {t:19,h:'Many other centrifugal and mixed flow types exist. Connecting a pump to the pipe line may require additional fittings, as on the end suction pump here.'}],
+ build(r){const mk=(pts)=>{const P=smooth(pts,10);return{P,c:[...Array(8)].map(()=>CI(r,0,0,4,'var(--water)'))}};
+  const es=E('g',{},r),il=E('g',{},r),sp=E('g',{},r);
+  /* end suction */
+  RC(es,6,212,44,36,'var(--water-t)','var(--ink)',2.5);RC(es,70,128,30,60,'var(--water-t)','var(--ink)',2.5);CI(es,85,230,50,'var(--water-t)','var(--ink)',3);CI(es,85,230,26,'var(--steel-t)','var(--ink)',1.5);
+  RC(es,135,224,22,12,'var(--steel)');RC(es,155,190,86,80,'var(--steel-t)','var(--ink)',2.5);for(let i=0;i<6;i++)LN(es,165+i*13,198,165+i*13,262,'var(--steel)',2);RC(es,60,296,190,12,'var(--steel)');LN(es,85,280,85,296,'var(--steel)',8);LN(es,198,270,198,296,'var(--steel)',8);
+  TX(es,126,60,'End suction',{size:27,cls:'d',anchor:'middle'});TX(es,4,184,'suction',{size:14});TX(es,106,142,'discharge',{size:14});
+  const fit=E('g',{},r);E('path',{d:'M70 128 L70 108 Q70 84 96 84 L128 84 L128 114 L100 114 L100 128Z',fill:'var(--water-t)',stroke:'var(--pressure)','stroke-width':3},fit);E('path',{d:'M6 212 L-6 204 L-6 256 L6 248Z',fill:'var(--water-t)',stroke:'var(--pressure)','stroke-width':3,transform:'translate(14 0)'},fit);
+  RC(fit,128,78,40,42,'var(--water-t)','var(--ink)',2.5);const ftx=TX(fit,174,96,'added',{size:14,fill:'var(--pressure)',weight:500});TX(fit,174,113,'fittings',{size:14,fill:'var(--pressure)',weight:500});
+  /* inline */
+  TX(il,380,60,'Inline',{size:27,cls:'d',anchor:'middle'});RC(il,272,272,216,36,'var(--water-t)','var(--ink)',2.5);CI(il,380,290,42,'var(--water-t)','var(--ink)',3);LN(il,380,238,380,256,'var(--steel)',10);RC(il,352,104,56,136,'var(--steel-t)','var(--ink)',2.5);for(let i=0;i<7;i++)LN(il,358,114+i*18,402,114+i*18,'var(--steel)',2);RC(il,340,330,80,10,'var(--steel)');LN(il,380,330,380,332,'var(--steel)',8);
+  TX(il,272,256,'suction',{size:14});TX(il,488,256,'discharge',{size:14,anchor:'end'});
+  /* split case */
+  TX(sp,632,60,'Split case',{size:27,cls:'d',anchor:'middle'});
+  RC(sp,574,290,36,84,'var(--water-t)','var(--ink)',2.5);RC(sp,654,290,36,84,'var(--water-t)','var(--ink)',2.5);
+  const low=E('path',{d:'M552 236 L712 236 L712 276 Q712 296 690 296 L574 296 Q552 296 552 276Z',fill:'var(--water-t)',stroke:'var(--ink)','stroke-width':3},sp);
+  LN(sp,520,236,744,236,'var(--steel)',8);
+  const imp=E('ellipse',{cx:632,cy:236,rx:12,ry:44,fill:'var(--steel-t)',stroke:'var(--ink)','stroke-width':2},sp);
+  RC(sp,530,222,16,28,'var(--ink)');RC(sp,718,222,16,28,'var(--ink)');
+  const top=E('path',{d:'M552 236 L712 236 L712 196 Q712 176 690 176 L574 176 Q552 176 552 196Z',fill:'var(--steel-t)',stroke:'var(--ink)','stroke-width':3,opacity:.92},sp);
+  const ttop=TX(sp,632,118,'casing lifts off',{size:14,anchor:'middle',fill:'var(--pressure)',weight:500});
+  TX(sp,566,392,'suction',{size:14,anchor:'middle'});TX(sp,690,392,'discharge',{size:14,anchor:'middle'});
+  const cap=[[es,126,['Suction on the shaft line,','discharge at the top']],[il,380,['Suction and discharge','on one straight line']],[sp,632,['Casing splits along shaft,','impeller between bearings']]];
+  cap.forEach(x=>x[2].forEach((l,i)=>TX(x[0],x[1],440+i*21,l,{size:15,anchor:'middle'})));
+  const flows=[mk([[6,230],[50,230],[85,230],[108,205],[85,180],[85,130]]),mk([[272,290],[340,290],[380,262],[420,290],[488,290]]),mk([[592,374],[592,290],[632,236],[672,290],[672,374]])];
+  return(t,c)=>{O(es,t<6||t>=19?1:.3);O(il,t>=6&&t<12||t>=19?1:.3);O(sp,t>=12&&t<19||t>=19?1:.3);
+   const u=rp(t,14,15.5)*(1-rp(t,17.5,18.6));top.setAttribute('transform',`translate(0 ${-u*44})`);O(ttop,u);
+   O(fit,rp(t,19,20.5));
+   flows.forEach((f,i)=>{const on=[t<6||t>=19,t>=6&&t<12||t>=19,t>=12]; f.c.forEach((q,k)=>{const[a,b]=at(f.P,(c*.2+k/8)%1);q.setAttribute('cx',a.toFixed(1));q.setAttribute('cy',b.toFixed(1));q.style.opacity=on[i]?1:.25});})}}});
+
+SCENES.push({id:'inside',name:'Inside the pump',slide:'Slide 137',title:'What happens to the liquid inside',dur:36,cues:[
+ {t:0,h:'Liquid comes down the suction line toward the <b>impeller eye</b>. Pressure drops a little on the way in, while kinetic energy holds steady.'},
+ {t:8,h:'The spinning <b>impeller</b> throws the liquid outward. Kinetic energy climbs fastest, and pressure rises too.'},
+ {t:17,h:'The <b>volute</b> is a passage that keeps widening. Liquid slows down there, and kinetic energy converts into pressure.'},
+ {t:27,h:'Compare inlet and outlet. Kinetic energy ends about where it started, so '+Mx('Δ<i>KE</i> ≈ 0')+'. The net result of a centrifugal pump is a large rise in pressure, '+Mx('Δ<i>P</i>')+'.'}],
+ build(r){const cx=170,cy=300,ro=th=>94+36*th/TAU;
+  const outer=[];for(let i=0;i<=80;i++){const th=i/80*TAU;outer.push([cx+ro(th)*Math.cos(th),cy-ro(th)*Math.sin(th)])}
+  const dpX0=cx+94-4,dpX1=cx+130;
+  E('path',{d:pathD(outer)+`L${dpX1} 96 L${dpX0} 96 L${dpX0} ${cy-6}Z`,fill:'var(--water-t)',stroke:'var(--ink)','stroke-width':3},r);
+  RC(r,dpX0-8,88,dpX1-dpX0+16,10,'var(--steel)');
+  const whl=E('g',{},r);CI(whl,0,0,84,'var(--steel-t)','var(--ink)',2);
+  for(let i=0;i<6;i++){const P=[];for(let k=0;k<=8;k++){const rr=lerp(20,82,k/8),a=i*TAU/6-1.1*k/8;P.push([rr*Math.cos(a),rr*Math.sin(a)])}E('path',{d:pathD(P),stroke:'var(--ink)','stroke-width':4,'stroke-linecap':'round'},whl)}
+  CI(whl,0,0,18,'var(--water-t)','var(--ink)',2);
+  /* suction stub drawn over the casing: it comes in along the shaft */
+  const stub=E('path',{d:`M6 ${cy-15} L${cx} ${cy-15} A15 15 0 0 1 ${cx} ${cy+15} L6 ${cy+15}Z`,fill:'var(--water-t)',stroke:'var(--ink)','stroke-width':2,opacity:.8},r);
+  RC(r,4,cy-20,8,40,'var(--steel)');
+  const lab=(x,y,s,a='start')=>TX(r,x,y,s,{size:15,anchor:a,cls:'halo',weight:500});
+  lab(10,cy-26,'SUCTION');lab(cx-132,cy+146,'IMPELLER');LN(r,cx-80,cy+130,cx-44,cy+66,'var(--ink)',1.5);lab(cx+34,cy+146,'VOLUTE');LN(r,cx+66,cy+130,cx+80,cy+92,'var(--ink)',1.5);lab(cx-14,cy-24,'EYE');TX(r,dpX1+8,110,'DISCHARGE',{size:15,weight:500});
+  TX(r,10,34,'Pump',{size:25,cls:'d'});TX(r,386,34,'Pressure and energy',{size:25,cls:'d'});
+  const pos=(u,ph)=>{if(u<.175){const w=u/.175;return[lerp(8,cx,w),cy]}
+    if(u<.642){const w=(u-.175)/.467,rr=lerp(10,84,w),a=ph+w*1.5;return[cx+rr*Math.cos(a),cy-rr*Math.sin(a)]}
+    const a0=((ph+1.5)%TAU+TAU)%TAU;if(u<.9){const w=(u-.642)/.258,a=lerp(a0,TAU,w),rr=lerp(84,(84+ro(a))/2+3,clamp(w*4));return[cx+rr*Math.cos(a),cy-rr*Math.sin(a)]}
+    const w=(u-.9)/.1;return[(dpX0+dpX1)/2,lerp(cy,100,w)]};
+  const parts=[...Array(44)].map((_,i)=>({c:CI(r,0,0,3,'var(--water)'),o:i/44,ph:(i*2.399)%TAU}));
+  const tr=CI(r,0,0,8,'var(--pressure)','var(--sheet)',2.5);
+  /* chart, shapes read off slide 137 */
+  const x0=392,x1=690,y0=440,yT=72,sx=u=>lerp(x0,x1,u),sy=v=>y0-v*(y0-yT);
+  const zones=[[0,.175,'Inlet'],[.175,.642,'Impeller'],[.642,1,'Outlet']];const zr=zones.map(z=>RC(r,sx(z[0]),yT,sx(z[1])-sx(z[0]),y0-yT,'var(--water-t)','',0,{opacity:0}));
+  LN(r,x0,yT,x0,y0,'var(--ink)',3);LN(r,x0,y0,x1,y0,'var(--ink)',3);LN(r,x1,yT,x1,y0,'var(--ink)',3);
+  zones.forEach(z=>{LN(r,sx(z[1]),y0,sx(z[1]),y0+8,'var(--ink)',1.5);TX(r,(sx(z[0])+sx(z[1]))/2,y0+25,z[2],{size:15,anchor:'middle'})});
+  TX(r,(sx(0)+sx(.175))/2,y0+44,'(suction)',{size:13,anchor:'middle'});TX(r,(sx(.642)+sx(1))/2,y0+44,'(volute)',{size:13,anchor:'middle'});
+  TX(r,378,(y0+yT)/2,'Pressure or energy',{size:15,rot:-90,anchor:'middle'});
+  const Pp=[[0,.37],[.175,.235],[.642,.45],[1,.87]],Kp=[[0,.45],[.175,.45],[.642,.94],[1,.49]];
+  const toPts=P=>{const o=[];for(let i=0;i<=90;i++){const u=i/90;let k=0;while(k<P.length-2&&u>P[k+1][0])k++;const f=(u-P[k][0])/(P[k+1][0]-P[k][0]);o.push([sx(u),sy(lerp(P[k][1],P[k+1][1],f))])}return o};
+  const PP=toPts(Pp),KP=toPts(Kp);const lP=E('path',{stroke:'var(--pressure)','stroke-width':4},r),lK=E('path',{stroke:'var(--kinetic)','stroke-width':4,'stroke-dasharray':'9 6'},r);
+  LN(r,x0+8,86,x0+36,86,'var(--pressure)',4);TX(r,x0+42,91,'Pressure',{size:14});LN(r,x0+8,108,x0+36,108,'var(--kinetic)',4,{'stroke-dasharray':'7 4'});TX(r,x0+42,113,'Kinetic energy',{size:14});
+  const mP=CI(r,0,0,6,'var(--pressure)'),mK=CI(r,0,0,6,'var(--kinetic)'),cur=LN(r,0,yT,0,y0,'var(--ink)',1,{'stroke-dasharray':'4 4'});
+  const br=E('g',{},r);const yP0=sy(.37),yP1=sy(.87),yK0=sy(.45),yK1=sy(.49);
+  LN(br,x0,yP0,728,yP0,'var(--grid2)',1);LN(br,x1,yP1,728,yP1,'var(--grid2)',1);
+  arrow(br,716,yP0-1,716,yP1+1,'var(--pressure)',3,10);arrow(br,716,yP1+1,716,yP0-1,'var(--pressure)',3,10);
+  TX(br,724,(yP0+yP1)/2,'ΔP',{size:19,weight:500,fill:'var(--pressure)'});
+  LN(br,x0,yK0,700,yK0,'var(--kinetic)',1);LN(br,x1,yK1,700,yK1,'var(--kinetic)',1);
+  TX(br,756,yP0+22,'ΔKE ≈ 0',{size:15,anchor:'end',weight:500,fill:'var(--kinetic)'});
+  const seg=u=>u<.175?0:u<.642?1:2;
+  return(t,c)=>{whl.setAttribute('transform',`translate(${cx} ${cy}) rotate(${-c*150})`);
+   const u=lin(t,1,27);
+   parts.forEach(q=>{const[a,b]=pos((c*.09+q.o)%1,q.ph);q.c.setAttribute('cx',a.toFixed(1));q.c.setAttribute('cy',b.toFixed(1))});
+   const[ta,tb]=pos(u,Math.PI*.1);tr.setAttribute('cx',ta);tr.setAttribute('cy',tb);
+   lP.setAttribute('d',pathD(PP,u));lK.setAttribute('d',pathD(KP,u));
+   const[a1,b1]=at(PP,u),[a2,b2]=at(KP,u);mP.setAttribute('cx',a1);mP.setAttribute('cy',b1);mK.setAttribute('cx',a2);mK.setAttribute('cy',b2);cur.setAttribute('x1',a1);cur.setAttribute('x2',a1);
+   zr.forEach((z,i)=>{z.style.opacity=u<1&&seg(u)===i?.35:0});
+   O(br,rp(t,27.5,29));O(cur,u<1?1:0)}}});
+
+SCENES.push({id:'test-bench',name:'Test bench',slide:'Slides 138–139',title:'Measuring a pump on a test bench',dur:40,cues:[
+ {t:0,h:'A pump\'s performance comes from a test facility. Instruments measure what goes in and what comes out while liquid circulates around a loop.'},
+ {t:6,h:'At the shaft: <b>torque</b> and <b>impeller rotational speed</b>.'},
+ {t:12,h:'At the inlet: <b>pressure and elevation</b>.'},
+ {t:17,h:'At the outlet: <b>pressure and elevation</b>.'},
+ {t:22,h:'In the line: <b>volumetric flow rate</b>, along with the <b>suction and discharge pipe specifications</b>.'},
+ {t:28,h:'From those readings we <b>calculate</b> four things: pump head delivered, power input to the liquid, power input to the impeller, and pump efficiency.'},
+ {t:34,h:'Closing the throttle valve a little changes the flow and head. Each valve setting gives one more test point.<span class="eq note">Readings shown match the worked example later. Torque follows from its 10 hp at 3500 rpm. Pressures, elevations and pipe sizes are illustrative values chosen to give 160 ft.</span>'}],
+ build(r){const W='var(--water-t)',I='var(--ink)';
+  const pipe=(pts,w=20)=>{E('path',{d:pathD(pts),stroke:I,'stroke-width':w+5,'stroke-linejoin':'round'},r);E('path',{d:pathD(pts),stroke:W,'stroke-width':w,'stroke-linejoin':'round'},r)};
+  const px=250,py=270;
+  /* tank */
+  RC(r,560,236,180,136,'var(--sheet)',I,3);RC(r,562,268,176,102,W);TX(r,650,330,'tank',{size:15,anchor:'middle'});
+  pipe([[640,236],[640,76],[px,76],[px,py-30]],16);pipe([[562,py+22],[px+30,py+22],[px+30,py]],22);
+  CI(r,px,py,46,W,I,3);const whl=E('g',{},r);CI(whl,0,0,28,'var(--steel-t)',I,1.5);for(let i=0;i<5;i++){const a=i*TAU/5;LN(whl,8*Math.cos(a),8*Math.sin(a),27*Math.cos(a-.5),27*Math.sin(a-.5),I,3)}
+  TX(r,px+56,py-34,'pump',{size:15});
+  /* motor and shaft */
+  RC(r,20,py-40,100,80,'var(--steel-t)',I,3);for(let i=0;i<6;i++)LN(r,32+i*15,py-32,32+i*15,py+32,'var(--steel)',2);TX(r,70,py-48,'motor',{size:15,anchor:'middle'});
+  const sh=RC(r,120,py-7,86,14,'var(--steel)');RC(r,150,py-19,24,38,'var(--sheet)',I,2.5);
+  /* valve + meter */
+  const vx=540;const vb=E('g',{transform:`translate(${vx} 76)`},r);E('polygon',{points:'-16,-13 16,13 16,-13 -16,13',fill:'var(--steel-t)',stroke:I,'stroke-width':2},vb);LN(vb,0,0,0,-30,I,3);const hw=LN(vb,-14,-30,14,-30,I,4);
+  TX(r,vx,28,'throttle valve',{size:15,anchor:'middle'});
+  RC(r,392,58,52,36,'var(--sheet)',I,2.5);TX(r,418,81,'FM',{size:15,anchor:'middle',weight:500});
+  /* gauges */
+  const gauge=(x,y,sx,sy)=>{const g=E('g',{},r);LN(g,sx,sy,x,y,I,3);CI(g,x,y,20,'var(--sheet)',I,2.5);const n=LN(g,x,y,x,y-15,'var(--pressure)',2.5);return{n,x,y}};
+  const gD=gauge(180,152,px-8,152),gS=gauge(420,224,420,py+12);
+  /* readout chips */
+  const c=[];const ch=(x,y,s,col)=>{const k=chip(r,x,y,s,col,15);c.push(k);return k};
+  const T=ch(56,330,'T = 15.0 ft·lbf','var(--power)'),N=ch(56,362,'N = 3500 rpm','var(--power)');LN(T,162,316,162,py+19,'var(--power)',1.5);
+  const Si=ch(440,206,'P_s = 5.2 psi','var(--pressure)'),Sz=ch(440,176,'z_s = 0 ft','var(--pressure)');
+  const Di=ch(4,122,'P_d = 72.4 psi','var(--pressure)'),Dz=ch(4,92,'z_d = 1 ft','var(--pressure)');
+  const Fl=ch(344,28,'V̇ = 175 gpm','var(--water)');
+  const Ps=ch(320,332,'suction 3 in ID','var(--water)'),Pd=ch(290,122,'discharge 2 in ID','var(--water)');
+  /* calculate strip */
+  const cal=E('g',{},r);TX(cal,20,420,'CALCULATE',{size:24,cls:'d'});
+  [['Pump head','H_p','var(--water)'],['Power to liquid','Ẇ','var(--eff)'],['Power to impeller','Ẇ_bhp','var(--power)'],['Efficiency','η_p','var(--eff)']].forEach((q,i)=>{const x=20+i*183;RC(cal,x,434,172,74,'var(--sheet)','var(--grid2)',1.5);TX(cal,x+10,462,q[0],{size:14});const v=TX(cal,x+10,494,q[1],{size:23,weight:500});v.style.fill=q[2]});
+  const loop=smooth([[px+30,py],[px+30,py+22],[562,py+22]],4).concat([[640,300]]);
+  const pathS=[[650,300],[562,py+22],[px+30,py+22],[px+30,py],[px,py],[px-30,py-20],[px,py-30],[px,76],[640,76],[640,236],[650,300]];
+  const seg=[];for(let i=0;i<pathS.length-1;i++){const n=Math.ceil(Math.hypot(pathS[i+1][0]-pathS[i][0],pathS[i+1][1]-pathS[i][1])/8);for(let k=0;k<n;k++)seg.push([lerp(pathS[i][0],pathS[i+1][0],k/n),lerp(pathS[i][1],pathS[i+1][1],k/n)])}
+  const parts=[...Array(34)].map((_,i)=>({c:CI(r,0,0,3.2,'var(--water)'),o:i/34}));
+  const needle=(g,a)=>{g.n.setAttribute('x2',g.x+15*Math.sin(a));g.n.setAttribute('y2',g.y-15*Math.cos(a))};
+  return(t,cl)=>{whl.setAttribute('transform',`translate(${px} ${py}) rotate(${cl*200})`);
+   const close=rp(t,35,37)*(1-rp(t,38.5,40));hw.setAttribute('transform',`rotate(${close*120})`);
+   parts.forEach(q=>{const[a,b]=at(seg,(cl*.06*(1-.4*close)+q.o)%1);q.c.setAttribute('cx',a);q.c.setAttribute('cy',b)});
+   O(T,rp(t,6,6.8));O(N,rp(t,7.5,8.3));O(Si,rp(t,12,12.8));O(Sz,rp(t,13.5,14.3));O(Di,rp(t,17,17.8));O(Dz,rp(t,18.5,19.3));O(Fl,rp(t,22,22.8));O(Ps,rp(t,24,24.8));O(Pd,rp(t,25,25.8));
+   needle(gS,-2+rp(t,12,14)*.6);needle(gD,-2+rp(t,17,19)*(3+close*.5));O(cal,rp(t,28,29.5))}}});
+
+SCENES.push({id:'data-reduction',name:'Data reduction',slide:'Slide 140',title:'From readings to head, power and efficiency',dur:38,cues:[
+ {t:0,h:'<b>Pump head</b> is discharge head minus suction head. Each head is a sum of pressure, velocity and elevation terms, and every term can be measured or found from measurements.<span class="eq">'+Mx('<i>H<sub>p</sub></i> = <i>H<sub>d</sub></i> − <i>H<sub>s</sub></i>')+'</span><span class="eq">'+Mx('<i>H<sub>p</sub></i> = ('+frac('<i>P<sub>d</sub></i>','γ')+' + '+frac('<i>V<sub>d</sub></i>²','2<i>g</i>')+' + <i>z<sub>d</sub></i>) − ('+frac('<i>P<sub>s</sub></i>','γ')+' + '+frac('<i>V<sub>s</sub></i>²','2<i>g</i>')+' + <i>z<sub>s</sub></i>)')+'</span>'},
+ {t:14,h:'<b>Brake horsepower</b> is the shaft power into the impeller: torque times angular speed.<span class="eq">'+Mx(Wd+'<sub>bhp</sub> = T ω')+'</span>'},
+ {t:21,h:'<b>Power input to the liquid</b> depends on mass flow and the head delivered.<span class="eq">'+Mx(Wd+' = '+md+' <i>g H<sub>p</sub></i>')+'</span>'},
+ {t:29,h:'<b>Pump efficiency</b> is the ratio of the two.<span class="eq">'+Mx('η<sub><i>p</i></sub> = '+frac(Wd,Wd+'<sub>bhp</sub>')+' = '+frac('7.08','10.0')+' = 0.708')+'</span>'}],
+ build(r){const b=446,k=2;
+  TX(r,20,36,'Head',{size:26,cls:'d'});TX(r,436,36,'Power',{size:26,cls:'d'});LN(r,420,20,420,520,'var(--grid2)',1.2);
+  const stack=(x,w,vals)=>{let y=b;return vals.map(v=>{const h=v[0]*k;y-=h;return{e:RC(r,x,y,w,h,v[1]),y,h,v}})};
+  const col=[['var(--pressure)','P/γ'],['var(--water)','V²/2g'],['var(--power)','z']];
+  const sS=stack(36,64,[[0,col[2][0]],[12,col[0][0]],[.98,col[1][0]]]),sD=stack(214,64,[[1,col[2][0]],[167.02,col[0][0]],[4.96,col[1][0]]]);
+  LN(r,20,b,410,b,'var(--ink)',2.5);
+  TX(r,68,b+24,'Suction',{size:16,anchor:'middle',weight:500});TX(r,68,b+45,'H_s = 12.98 ft',{size:15,anchor:'middle'});
+  TX(r,246,b+24,'Discharge',{size:16,anchor:'middle',weight:500});TX(r,246,b+45,'H_d = 172.98 ft',{size:15,anchor:'middle'});
+  const ls=E('g',{},r);TX(ls,106,b-32,'V²/2g 0.98',{size:13,fill:col[1][0]});TX(ls,106,b-8,'P/γ 12.0',{size:13,fill:col[0][0]});TX(ls,172,b-8,'z 0',{size:12,fill:col[2][0]});
+  const ld=E('g',{},r);TX(ld,284,b-334,'V²/2g 4.96',{size:14,fill:col[1][0]});TX(ld,284,b-170,'P/γ 167.0',{size:14,fill:col[0][0]});TX(ld,284,b-4,'z 1.0',{size:14,fill:col[2][0]});
+  const yS=b-12.98*k,yD=b-172.98*k;const hp=E('g',{},r);LN(hp,36,yS,206,yS,'var(--ink)',1,{'stroke-dasharray':'4 4'});LN(hp,200,yD,214,yD,'var(--ink)',1);arrow(hp,202,yS,202,yD,'var(--ink)',3,11);arrow(hp,202,yD,202,yS,'var(--ink)',3,11);
+  TX(hp,186,(yS+yD)/2-6,'H_p',{size:26,anchor:'end',weight:500});TX(hp,186,(yS+yD)/2+18,'160 ft',{size:18,anchor:'end',weight:500});
+  /* sankey: band thickness is to scale, 12 px per hp */
+  const sk=12,yc=170,xa=440,xb=540;
+  const inb=E('path',{stroke:'var(--power)','stroke-width':10*sk},r),P0=[[xa,yc],[xb,yc]];
+  const yW=yc-60+7.08*sk/2,yL=yc-60+7.08*sk+2.92*sk/2;
+  const Pw=[[xb,yW],[745,yW]],Pl=smooth([[xb,yL],[580,yL],[620,yL+26],[632,yL+90],[632,yL+128]],8);
+  const wb=E('path',{stroke:'var(--eff)','stroke-width':7.08*sk},r),lb=E('path',{stroke:'var(--steel)','stroke-width':2.92*sk},r);
+  const shT=E('g',{},r);TX(shT,436,64,'Shaft power',{size:16,weight:500});TX(shT,436,84,'T ω = 15.0 ft·lbf × 366.5 rad/s',{size:13});const bT=TX(shT,490,yc+7,'10.0 hp',{size:20,anchor:'middle',weight:500});bT.style.fill='var(--sheet)';
+  const wT=E('g',{},r);const a1=TX(wT,640,yW-2,'To liquid',{size:15,anchor:'middle',weight:500});const a2=TX(wT,640,yW+22,'7.08 hp',{size:20,anchor:'middle',weight:500});a1.style.fill=a2.style.fill='var(--sheet)';
+  const lT=TX(r,656,yL+78,'2.92 hp',{size:16,weight:500}),lT2=TX(r,656,yL+98,'lost in',{size:14}),lT3=TX(r,656,yL+116,'pump',{size:14});
+  const eb=E('g',{},r);TX(eb,436,478,'η_p = 7.08 / 10.0',{size:21,weight:500});const eV=TX(eb,436,510,'= 0.708',{size:27,weight:500});eV.style.fill='var(--eff)';
+  return(t)=>{const f=[[0,5],[5,9],[9,13]];
+   const g1=rp(t,.5,3),g2=rp(t,2,6),g3=rp(t,5,8);
+   const setH=(s,g)=>{let y=b;s.forEach(q=>{const h=q.h*g;y-=h;q.e.setAttribute('y',y);q.e.setAttribute('height',h)})};setH(sS,g1);setH(sD,g2);O(ls,g1);O(ld,g2);O(hp,g3);
+   const gi=rp(t,14,17);inb.setAttribute('d',pathD(P0,gi));O(shT,rp(t,14,15));
+   const gw=rp(t,21,25);wb.setAttribute('d',pathD(Pw,gw));lb.setAttribute('d',pathD(Pl,gw));O(wT,rp(t,23,25));[lT,lT2,lT3].forEach(e=>O(e,rp(t,24,26)));O(eb,rp(t,29,31))}}});
+
+SCENES.push({id:'the-chart',name:'The chart',slide:'Slides 141–142',title:'How the test data becomes a pump curve',dur:50,cues:[
+ {t:0,h:'Hold the rotational speed fixed, here 3500 rpm, and fit one impeller. Each throttle valve setting gives one point: flow on the horizontal axis, head on the vertical.'},
+ {t:7,h:'Connect the points to get that impeller\'s curve. Repeat with other impeller diameters to get a family of curves, one for each size.'},
+ {t:19,h:'Each test point also has an efficiency. Join the points with equal efficiency across the impeller curves and you get an <b>iso-efficiency line</b>. Here the 70% points connect.'},
+ {t:26,h:'The other efficiency values fill in as nested loops that close around the most efficient region.'},
+ {t:31,h:'Do the same with input power to get the <b>iso-power lines</b>. They cut across the impeller curves at a shallow angle. Here is the 10 hp line through its test points, then the others.'},
+ {t:39,h:'This is the manufacturer\'s <b>pump curve</b> for one pump model at one speed. It also carries the NPSH required curve, which uses the axis on the right. This drawing is traced from slide 142.'}],
+ build(r){const c=makeChart(r);c.addEff();c.addPow();c.addImps();c.addNpsh();const pl=c.addPlate();
+  const keys=['5','5.5','6','6.5','7'];
+  const qs=[30,90,140,190,240,300];const dots={};
+  keys.forEach(k=>{dots[k]=qs.map(f=>{const q=f/349*IMP[k].qEnd;return CI(r,c.X(q),c.Y(IMP[k].H(q)),5.5,'var(--ink)','var(--sheet)',1.5)})});
+  /* crossing dots for 70% and 10 hp */
+  const eDots=[[169,'6.5'],[168,'6'],[176,'5.5'],[175,'7'],[208,'5.5'],[248,'6'],[285,'6.5'],[333,'7']].map(x=>CI(r,c.X(x[0]),c.Y(IMP[x[1]].H(x[0])),6.5,'var(--eff)','var(--sheet)',1.5));
+  const pDots=[[117.5,201],[176,160]].map(x=>CI(r,c.X(x[0]),c.Y(x[1]),6.5,'var(--power)','var(--sheet)',1.5));
+  const e70=c.eff.find(x=>x.e===70),p10=c.pow.find(x=>x.hp===10);
+  const speed=TX(r,c.X(290),c.Y(206),'Fixed speed: 3500 rpm',{size:17,weight:500,cls:'halo'});
+  return(t)=>{keys.forEach((k,i)=>{const s=i?7+(i-1)*2.4+2.2:1,dt=i?.25:.9;dots[k].forEach((d,j)=>{const v=rp(t,s+j*dt,s+j*dt+.3);O(d,t>18.5?(1-rp(t,18.5,19.5)):v);d.setAttribute('r',5.5*(v<1?1+(1-v):1))});
+     const cs=i?s+1.6:7.2;c.imp[k].e.setAttribute('d',pathD(c.imp[k].pts,rp(t,cs,cs+(i?1.4:1.8))));O(c.imp[k].t,rp(t,cs,cs+.5))});
+   eDots.forEach((d,i)=>O(d,rp(t,19+i*.25,19.3+i*.25)*(1-rp(t,25,26))));
+   c.eff.forEach(x=>{const p=x===e70?rp(t,21.5,24):rp(t,26,29.5);x.el.setAttribute('d',pathD(x.pts,p));x.el.style.strokeWidth=x===e70&&t<26?3:1.5;x.lb.forEach(l=>O(l,p>=1?1:0))});O(c.effPeak,rp(t,29,30));
+   pDots.forEach((d,i)=>O(d,rp(t,31+i*.25,31.3+i*.25)*(1-rp(t,36,37))));
+   c.pow.forEach(x=>{const p=x===p10?rp(t,32.5,35):rp(t,36,38.5);x.el.setAttribute('d',pathD(x.pts,p));O(x.t,p>=1?1:0)});
+   c.npsh.setAttribute('d',pathD(c.npshPts,rp(t,39,41)));O(c.npshT,rp(t,40.5,41));O(pl,rp(t,41,42));O(speed,1-rp(t,41,42))}}});
+
+SCENES.push({id:'booklets',name:'Booklets',slide:'Slide 143',title:'Finding the chart: pump curve booklets',dur:26,cues:[
+ {t:0,h:'Manufacturers publish pump curves in booklets. The one on the slide is for an end suction series, labeled on the spine as <b>Series 1531</b>.'},
+ {t:5,h:'Separate charts cover <b>different operating speeds</b>: 3500, 1750 and 1150 rpm at 60 Hz.'},
+ {t:10,h:'A <b>sketch of the pump configuration</b> shows what the series looks like.'},
+ {t:14,h:'<b>Several pump models share one overview chart.</b> Each outline is a different model. Pick the one that covers your duty, then turn to its detailed chart, such as the 2AC.'},
+ {t:21,h:'<b>Appendix E</b> of the textbook contains Bell &amp; Gossett curve booklets for Series e-80 (inline) and Series e-1531 (end suction) centrifugal pumps.'}],
+ build(r){RC(r,20,16,400,508,'var(--sheet)','var(--ink)',2);LN(r,330,16,330,524,'var(--grid2)',1.5);LN(r,20,430,330,430,'var(--grid2)',1.5);
+  TX(r,30,468,'Close Coupled Centrifugal',{size:21,cls:'d'});TX(r,30,494,'Pump Performance Curves',{size:21,cls:'d'});
+  TX(r,30,414,'60 HERTZ PERFORMANCE CURVES',{size:12,weight:500});TX(r,250,44,'CURVE BOOKLET',{size:12,weight:500});
+  const sp=TX(r,392,500,'SERIES 1531',{size:66,cls:'d',rot:-90});
+  const minis=[['3500 R.P.M.',60],['1750 R.P.M.',176],['1150 R.P.M.',292]].map((m,idx)=>{const g=E('g',{},r),x=30,y=m[1],w=190,h=104;RC(g,x,y,w,h,'var(--sheet)','var(--ink)',1.2);for(let i=1;i<10;i++)LN(g,x+i*w/10,y,x+i*w/10,y+h,'var(--grid)',.8);for(let i=1;i<6;i++)LN(g,x,y+i*h/6,x+w,y+i*h/6,'var(--grid)',.8);
+    const tents=[];[[.05,.62,.2],[.1,.32,.26],[.2,.7,.34],[.34,.36,.38],[.46,.75,.34],[.62,.42,.3]].forEach((q,i)=>{const[a,top,wd]=q,x0=x+a*w,y0=y+top*h-22,W=wd*w,H=34;const P=`M${x0} ${y0} Q${x0+W*.6} ${y0-5} ${x0+W} ${y0+H*.8} L${x0+W*.7} ${y0+H} Q${x0+W*.3} ${y0+H*.72} ${x0} ${y0+H*.6}Z`;tents.push(E('path',{d:P,fill:i===2&&idx===0?'var(--water-t)':'none',stroke:i===2&&idx===0?'var(--water)':'var(--muted)','stroke-width':i===2&&idx===0?2:1},g))});
+    RC(g,x+w-62,y,62,14,'var(--plate)');const lab=TX(g,x+w-31,y+11,m[0],{size:9,anchor:'middle',weight:500});lab.style.fill='var(--plate-fg)';if(idx===0)TX(g,x+.32*w,y+.62*h,'2AC',{size:11,anchor:'middle',weight:500,cls:'halo'});return{g,x,y,w,h}});
+  /* pump sketch */
+  const sk=E('g',{},r);RC(sk,232,206,44,44,'var(--steel-t)','var(--ink)',2);CI(sk,292,228,28,'var(--water-t)','var(--ink)',2.5);CI(sk,292,228,10,'var(--sheet)','var(--ink)',2);RC(sk,282,186,18,18,'var(--water-t)','var(--ink)',2);RC(sk,276,180,30,6,'var(--steel)');
+  const co=[{y:70,c:'var(--water)',t:['Different','operating speeds'],to:[[222,110],[222,226],[222,342]],at:5},{y:190,c:'var(--ink)',t:['Pump series'],to:[[396,190]],at:0,from:440},{y:280,c:'var(--eff)',t:['Sketch of the','pump configuration'],to:[[322,240]],at:10},{y:390,c:'var(--pressure)',t:['Several pump models','on the same chart'],to:[[196,330]],at:14}].map(q=>{const g=E('g',{},r);q.t.forEach((l,i)=>TX(g,478,q.y+i*22,l,{size:16,weight:500}));q.to.forEach(p=>arrow(g,472,q.y+4,p[0],p[1],q.c,1.8,10));return{g,at:q.at}});
+  const ap=E('g',{},r);RC(ap,440,450,308,74,'var(--sheet)','var(--ink)',2);TX(ap,452,475,'Appendix E: curve booklets for',{size:14});TX(ap,452,495,'Series e-80 (inline) and',{size:14});TX(ap,452,515,'Series e-1531 (end suction)',{size:14});
+  return(t)=>{co.forEach(q=>O(q.g,rp(t,q.at,q.at+1)));O(ap,rp(t,21,22));O(sk,rp(t,10,11)*.7+.3)}}});
+
+SCENES.push({id:'reading',name:'Reading',slide:'Slides 144–145',title:'Worked example: reading the chart',dur:36,cues:[
+ {t:0,h:'The problem: for this pump model, find the capacity, power input to the impeller, power input to the fluid, and efficiency of a <b>6½-inch impeller</b> producing <b>160 ft of head</b>. The fluid is water.'},
+ {t:7,h:'Find the 6½-inch impeller curve.'},
+ {t:11,h:'Go across from 160 ft on the head axis until you reach that curve. That point is where the pump is operating.'},
+ {t:16,h:'Drop straight down to the capacity axis. The flow is <b>175 gpm</b>.'},
+ {t:21,h:'Follow the iso-power lines. The operating point sits on the 10 hp line, so the chart gives <b>power = 10 hp</b>.'},
+ {t:27,h:'Now the iso-efficiency lines. The point falls between the 70% and 72% lines, so <b>'+Mx('η<sub><i>p</i></sub>')+' ≈ 71%</b>.'}],
+ build(r){const c=makeChart(r);const gE=c.addEff(),gP=c.addPow(),gI=c.addImps();c.addNpsh();c.addPlate();
+  const qp=175,hp=160,X=c.X(qp),Y=c.Y(hp),x0=c.X(0),yb=c.Y(0);
+  const hL=E('path',{stroke:'var(--pressure)','stroke-width':3.5},r),vL=E('path',{stroke:'var(--pressure)','stroke-width':3.5},r),dot=CI(r,X,Y,8,'var(--pressure)','var(--sheet)',2.5);
+  const given=chip(r,86,296,'Given: 6½", 160 ft, water','var(--ink)',15);
+  const a1=chip(r,X+10,c.Y(36),'V̇ = 175 gpm','var(--water)',18);const a2=chip(r,X+50,Y-54,'Power = 10 hp','var(--power)',18);const a3=chip(r,X-14,c.Y(154),'η_p ≈ 71%','var(--eff)',18,'end');
+  const P10=c.pow.find(x=>x.hp===10),E70=c.eff.find(x=>x.e===70),E72=c.eff.find(x=>x.e===72);
+  const ring=E('ellipse',{cx:c.X(14),cy:c.Y(174),rx:30,ry:17,fill:'none',stroke:'var(--pressure)','stroke-width':3},r);
+  const H=[[x0,Y],[X,Y]],V=[[X,Y],[X,yb]];
+  return(t,cl)=>{const fade=rp(t,7,8);
+   for(const k in c.imp){const on=k==='6.5';c.imp[k].e.style.opacity=on?1:lerp(1,.3,fade);c.imp[k].e.style.stroke=on&&t>=7?'var(--pressure)':'var(--ink)';c.imp[k].e.style.strokeWidth=on&&t>=7?4.5:3;c.imp[k].t.style.opacity=on?1:lerp(1,.35,fade)}
+   O(ring,rp(t,7,7.6));hL.setAttribute('d',pathD(H,rp(t,11,13)));vL.setAttribute('d',pathD(V,rp(t,16,18)));O(dot,rp(t,12.8,13.2));O(a1,rp(t,17.6,18.4));O(a2,rp(t,22.5,23.3));O(a3,rp(t,29,29.8));O(given,1-rp(t,16,17));
+   c.pow.forEach(x=>{const on=x===P10&&t>=21;x.el.style.opacity=on?1:lerp(.75,.25,fade);x.el.style.strokeWidth=on?5:3.2;x.t.style.opacity=on?1:lerp(.9,.3,fade)});
+   c.eff.forEach(x=>{const on=(x===E70||x===E72)&&t>=27;x.el.style.opacity=on?1:lerp(.8,.25,fade);x.el.style.strokeWidth=on?3.2:1.5;x.lb.forEach(l=>l.style.opacity=on?1:lerp(.9,.25,fade))});c.effPeak.style.opacity=lerp(.9,.25,fade)}}});
+
+SCENES.push({id:'which-power',name:'Which power?',slide:'Slide 146',title:'Which power did the chart give us?',dur:34,cues:[
+ {t:0,h:'The chart gave 10 hp, but a pump has two powers: into the impeller and into the fluid. Which one did we read? Calculate the power to the fluid and see.'},
+ {t:5,h:'First the mass flow, using the density of water and 175 gpm. The units cancel down to lbm/s.'},
+ {t:12,h:'Then the power to the fluid, '+Mx(Wd+' = '+md+'<i>gH<sub>p</sub></i>')+'. The units reduce to horsepower: <b>7.08 hp</b>.'},
+ {t:20,h:'That is well below 10 hp, so the value on the chart must be the <b>brake horsepower</b>, the power input to the impeller.'},
+ {t:26,h:'Check it. '+Mx(frac('7.08','10')+' = 0.708')+' matches the 71% read from the iso-efficiency lines. The chart and the calculation agree.'}],
+ build(r){const SZ=15.5,CW=SZ*.6,GAP=16;
+  /* chain of fractions built from tokens so unit cancellations can be struck through */
+  function chain(y,lead,items,tail){const g=E('g',{},r);let x=14;const L=TX(g,x,y+6,lead,{size:18,weight:500});x+=lead.length*18*.6+12;const strikes={};const groups=[];
+    items.forEach((it,idx)=>{const gg=E('g',{},g);const wT=it.n.reduce((s,q)=>s+q[0].length,0)+Math.max(0,it.n.length-1),wB=(it.d||[]).reduce((s,q)=>s+q[0].length,0)+Math.max(0,(it.d||[]).length-1),w=Math.max(wT,wB)*CW+8;
+      const row=(toks,yy,wr)=>{let xx=x+(w-wr*CW)/2;toks.forEach(tk=>{TX(gg,xx,yy,tk[0],{size:SZ});if(tk[1]){const s=LN(gg,xx-1,yy-SZ*.3,xx+tk[0].length*CW+1,yy-SZ*.3,'var(--pressure)',2);(strikes[tk[1]]=strikes[tk[1]]||[]).push({s,l:tk[0].length})}xx+=(tk[0].length+1)*CW})};
+      if(it.d){row(it.n,y-5,wT);LN(gg,x,y+1,x+w,y+1,'var(--ink)',1.5);row(it.d,y+19,wB)}else row(it.n,y+6,wT);
+      groups.push(gg);x+=w+GAP});
+    const res=TX(g,x-4,y+6,tail,{size:19,weight:600});return{g,groups,res,strikes}}
+  const q=E('g',{},r);const qt=TX(q,14,44,'Chart read 10 hp. Into the impeller, or into the fluid?',{size:24,cls:'d'});
+  const A=chain(112,'ṁ =',[{n:[['62.4'],['lbm']],d:[['ft³','a']]},{n:[['175'],['gpm','b']]},{n:[['ft³','a']],d:[['448.83'],['gpm','b'],['s']]}],'= 24.33 lbm/s');
+  const B=chain(214,'Ẇ =',[{n:[['24.33'],['lbm','c']],d:[['s','d']]},{n:[['32.174','e'],['ft','f']],d:[['s²','d']]},{n:[['160'],['ft','f']]},{n:[['lbf','g'],['s²','d']],d:[['32.174','e'],['lbm','c'],['ft','f']]},{n:[['hp'],['s','d']],d:[['550'],['ft','f'],['lbf','g']]}],'= 7.08 hp');
+  /* comparison bars, to scale: 44 px per hp */
+  const bg=E('g',{},r),bx=120,bk=44;TX(bg,14,312,'Ẇ fluid',{size:16,weight:500});TX(bg,14,362,'Chart',{size:16,weight:500});
+  const b1=RC(bg,bx,292,0,32,'var(--eff)'),b2=RC(bg,bx,342,0,32,'var(--power)');const v1=TX(bg,bx+7.08*bk+8,314,'7.08 hp',{size:18,weight:500}),v2=TX(bg,bx+10*bk+8,364,'10 hp',{size:18,weight:500});
+  const bh=chip(r,300,412,'10 hp = power into the impeller (bhp)','var(--power)',16,'middle');bh.setAttribute('transform','translate(80 0)');
+  const ef=E('g',{},r);TX(ef,14,484,'η_p = Ẇ / Ẇ_bhp = 7.08 / 10 =',{size:19,weight:500});const ev=TX(ef,362,486,'0.708',{size:30,weight:600});ev.style.fill='var(--eff)';const ck=TX(ef,14,516,'Read from the chart: about 71%. They agree.',{size:16});
+  return(t)=>{const rev=(C,s,dt)=>{C.groups.forEach((g,i)=>O(g,rp(t,s+i*dt,s+i*dt+.4)))};
+   rev(A,5,.7);O(A.g.firstChild,rp(t,5,5.4));rev(B,12,.7);O(B.g.firstChild,rp(t,12,12.4));
+   const strike=(C,ks,s,dt)=>ks.forEach((k,i)=>(C.strikes[k]||[]).forEach(o=>o.s.style.opacity=rp(t,s+i*dt,s+i*dt+.3)));
+   strike(A,['a','b'],7.6,1);strike(B,['e','c','d','f','g'],15.8,.6);O(A.res,rp(t,9.8,10.4));O(B.res,rp(t,18.6,19.2));
+   b1.setAttribute('width',7.08*bk*rp(t,20,21.5));b2.setAttribute('width',10*bk*rp(t,20.6,22.1));O(v1,rp(t,21,21.6));O(v2,rp(t,21.6,22.2));O(bg,rp(t,20,20.3));O(bh,rp(t,23,24));O(ef,rp(t,26,27));O(ck,rp(t,28,29))}}});
+
+/* extended 6½" curve, for the extremes. Beyond the printed end at 326 gpm it is a sketch. */
+const EXT={H:mono([...DATA.impellers['6.5'].H,[360,64],[388,30],[405,0]]),eta:mono([...DATA.impellers['6.5'].eta,[360,.47],[388,.24],[405,0]])};
+SCENES.push({id:'extremes',name:'Extremes',slide:'Slide 147',title:'The two ends of a pump curve',dur:36,cues:[
+ {t:0,h:'<b>a = cutoff head (no flow).</b> The pump cannot provide enough pressure head to overcome friction, so flow ceases. Head is at its highest and flow is zero.'},
+ {t:8,h:'Open the system up and flow rises while head falls. Read the efficiency along this impeller curve and plot the results below it.'},
+ {t:17,h:'<b>b = free delivery (no head).</b> The fluid flows through the pump as if it were a pipe. Flow is at its highest and head is zero.'},
+ {t:24,h:'Efficiency is zero at both ends, because '+Mx(Wd+' = '+md+'<i>gH<sub>p</sub></i>')+' is zero with no flow and zero with no head. Between them sits a maximum.'},
+ {t:29,h:'That maximum is the <b>best efficiency point (bep)</b>, about 74% at 228 gpm for this impeller.<span class="eq note">The dashed part of the curves runs past the end of the printed chart and is sketched.</span>'}],
+ build(r){const ax=(y,h,lab)=>{LN(r,62,y,62,y+h,'var(--ink)',3);LN(r,62,y+h,430,y+h,'var(--ink)',3);TX(r,20,y+h/2,lab,{size:17,rot:-90,anchor:'middle',weight:500})};
+  const X=q=>62+q/430*360,Y1=h=>236-h/190*206,Y2=e=>480-e/.85*190;
+  ax(30,206,'H_p (ft)');ax(290,190,'η_p');
+  [0,50,100,150].forEach(h=>{LN(r,62,Y1(h),430,Y1(h),'var(--grid)',1);TX(r,56,Y1(h)+5,h,{size:14,anchor:'end'})});[0,.25,.5,.75].forEach(e=>{LN(r,62,Y2(e),430,Y2(e),'var(--grid)',1);TX(r,56,Y2(e)+5,Math.round(e*100)+'%',{size:14,anchor:'end'})});
+  [0,100,200,300,400].forEach(q=>{TX(r,X(q),256,q,{size:14,anchor:'middle'});TX(r,X(q),500,q,{size:14,anchor:'middle'})});TX(r,246,526,'V̇ (gpm)',{size:16,anchor:'middle',weight:500});
+  const hp=[],ep=[];for(let i=0;i<=120;i++){const q=405*i/120;hp.push([X(q),Y1(EXT.H(q))]);ep.push([X(q),Y2(EXT.eta(q))])}
+  const iEnd=Math.round(326/405*120);
+  E('path',{d:pathD(hp.slice(0,iEnd+1)),stroke:'var(--ink)','stroke-width':3.5},r);E('path',{d:pathD(hp.slice(iEnd)),stroke:'var(--ink)','stroke-width':3,'stroke-dasharray':'8 6'},r);
+  const eS=E('path',{stroke:'var(--eff)','stroke-width':3.5},r),eD=E('path',{stroke:'var(--eff)','stroke-width':3,'stroke-dasharray':'8 6'},r);
+  const d1=CI(r,0,0,8,'var(--pressure)','var(--sheet)',2.5),d2=CI(r,0,0,8,'var(--pressure)','var(--sheet)',2.5),link=LN(r,0,0,0,0,'var(--pressure)',1.2,{'stroke-dasharray':'4 4'});
+  CI(r,X(0),Y1(170.5),5,'var(--ink)');CI(r,X(405),Y1(0),5,'var(--ink)');TX(r,X(0)+8,Y1(170.5)-10,'(a) Cutoff head',{size:15,weight:500,cls:'halo'});TX(r,X(405)-22,Y1(0)-8,'(b) Free delivery',{size:15,weight:500,anchor:'end',cls:'halo'});
+  const bep=E('g',{},r);CI(bep,X(228),Y2(.736),6,'var(--eff)','var(--sheet)',2);TX(bep,X(228),Y2(.736)-11,'bep = best efficiency point',{size:14,weight:500,cls:'halo',anchor:'middle'});
+  /* system: pump + valve + gauge */
+  const sx=452;TX(r,sx,36,'The system',{size:24,cls:'d'});
+  const py=150;RC(r,sx+30,py-14,270,28,'var(--water-t)','var(--ink)',2.5);CI(r,sx+40,py,36,'var(--water-t)','var(--ink)',3);const whl=E('g',{},r);CI(whl,0,0,22,'var(--steel-t)','var(--ink)',1.5);for(let i=0;i<5;i++){const a=i*TAU/5;LN(whl,5*Math.cos(a),5*Math.sin(a),21*Math.cos(a-.5),21*Math.sin(a-.5),'var(--ink)',2.5)}
+  const gate=RC(r,sx+172,py-44,14,0,'var(--steel)','var(--ink)',1.5);LN(r,sx+179,py-68,sx+179,py-44,'var(--ink)',3);TX(r,sx+179,py-74,'valve',{size:14,anchor:'middle'});
+  const parts=[...Array(10)].map((_,i)=>CI(r,0,0,3.4,'var(--water)'));let ph=0,last=0;
+  /* readouts */
+  const rd=[['V̇','gpm'],['H_p','ft'],['η_p','%']].map((q,i)=>{const y=224+i*50;TX(r,sx,y+7,q[0],{size:20,weight:500});const v=TX(r,sx+62,y+7,'',{size:26,weight:500});TX(r,sx+150,y+7,q[1],{size:15});RC(r,sx+58,y-20,84,38,'none','var(--grid2)',1);return v});
+  const st=TX(r,sx,404,'',{size:22,cls:'d'}),st2=TX(r,sx,430,'',{size:14}),st3=TX(r,sx,450,'',{size:14});
+  const q=t=>t<8?0:t<17?lerp(0,405,rp(t,8,17)):t<25?405:lerp(405,228,rp(t,25,29.5));
+  return(t,c)=>{const Q=q(t),H=EXT.H(Q),Et=EXT.eta(Q);const mx=t<17?Q:405;const u=mx/405,pts=ep.slice(0,Math.round(u*120)+1);
+   eS.setAttribute('d',pathD(pts.slice(0,iEnd+1)));eD.setAttribute('d',pts.length>iEnd?pathD(pts.slice(iEnd)):'');
+   d1.setAttribute('cx',X(Q));d1.setAttribute('cy',Y1(H));d2.setAttribute('cx',X(Q));d2.setAttribute('cy',Y2(Et));link.setAttribute('x1',X(Q));link.setAttribute('x2',X(Q));link.setAttribute('y1',Y1(H));link.setAttribute('y2',Y2(Et));
+   whl.setAttribute('transform',`translate(${sx+40} ${py}) rotate(${-c*220})`);
+   gate.setAttribute('y',py-44);gate.setAttribute('height',Q<=0?58:lerp(44,20,clamp(Q/200)));
+   ph=(c*(Q/405)*.55);parts.forEach((d,i)=>{const[x,y]=[sx+50+((ph+i/10)%1)*250,py+(i%3-1)*5];const qu=Q<1&&x>sx+172;d.setAttribute('cx',x);d.setAttribute('cy',y);d.style.opacity=qu?0:1});
+   rd[0].textContent=Math.round(Q);rd[1].textContent=Math.round(H);rd[2].textContent=Math.round(Et*100);
+   O(bep,rp(t,29,30));
+   const s=t<8?['a: Cutoff head','Valve shut. No flow, so the pump','adds pressure and moves nothing.']:t<17?['Moving along the curve','Flow rises, head falls,','and efficiency climbs, then drops.']:t<25?['b: Free delivery','No head delivered. The liquid','passes through as if in a pipe.']:['Best efficiency point','Selected service should run','as close to here as possible.'];
+   if(st.textContent!==s[0]){st.textContent=s[0];st2.textContent=s[1];st3.textContent=s[2]}}}});
+
+SCENES.push({id:'bep',name:'Best efficiency',slide:'Slide 148',title:'Selecting a pump near the bep',dur:24,cues:[
+ {t:0,h:'Each impeller curve has its own maximum efficiency. Mark the peak on each one.'},
+ {t:6,h:'Joined together, those peaks form the line of <b>best efficiency points</b> that runs across the chart.'},
+ {t:12,h:'<b>When selecting a pump for a specific service, the pump efficiency should be as close to the bep as possible.</b>'},
+ {t:17,h:'The worked example at 175 gpm runs at about 71%. The same 6½-inch impeller peaks near 74% at about 228 gpm, so that duty sits to the left of its best point.<span class="eq note">Peak values are read from the traced chart, so treat them as approximate.</span>'}],
+ build(r){const c=makeChart(r);const ge=c.addEff(),gp=c.addPow();c.addImps();c.addNpsh();c.addPlate();O(ge,.55);O(gp,.35);
+  const keys=['5','5.5','6','6.5','7'],pts=keys.map(k=>[c.X(IMP[k].bep),c.Y(IMP[k].H(IMP[k].bep))]);
+  const line=E('path',{stroke:'var(--pressure)','stroke-width':5,'stroke-dasharray':'14 8'},r);const sm=smooth(pts,10);
+  const dots=keys.map((k,i)=>{const g=E('g',{},r);CI(g,pts[i][0],pts[i][1],7,'var(--pressure)','var(--sheet)',2);const pct=(IMP[k].eta(IMP[k].bep)*100).toFixed(k==='7'?1:0);chip(g,pts[i][0]+14,pts[i][1]-16,pct+'%','var(--pressure)',13);return g});
+  const ex=E('g',{},r);const qx=c.X(175),qy=c.Y(160);const bx=c.X(228),by=c.Y(IMP['6.5'].H(228));CI(ex,qx,qy,8,'var(--water)','var(--sheet)',2.5);chip(ex,qx-6,qy-54,'Example: 175 gpm, 71%','var(--water)',14,'end');
+  const arr=E('path',{stroke:'var(--water)','stroke-width':3},ex);const cv=c.imp['6.5'].pts.filter(p=>p[0]>=qx&&p[0]<=bx);
+  return(t)=>{dots.forEach((d,i)=>O(d,rp(t,.6+i*.9,1+i*.9)));line.setAttribute('d',pathD(sm,rp(t,6,9.5)));O(ex,rp(t,17,18));arr.setAttribute('d',pathD(cv,rp(t,18,20)))}}});
+
+/* free exploration */
+SCENES.push({id:'try-it',name:'Try it',slide:'Your turn',title:'Read the chart yourself',free:true,dur:1,cues:[],
+ build(r,ctx){const c=makeChart(r);const ge=c.addEff(),gp=c.addPow();c.addImps();c.addNpsh();c.addPlate();
+  const keys=['5','5.5','6','6.5','7'];const bl=E('path',{d:pathD(smooth(keys.map(k=>[c.X(IMP[k].bep),c.Y(IMP[k].H(IMP[k].bep))]),10)),stroke:'var(--pressure)','stroke-width':3,'stroke-dasharray':'12 8'},r);
+  const hL=E('path',{stroke:'var(--water)','stroke-width':2.5},r),vL=E('path',{stroke:'var(--water)','stroke-width':2.5},r);
+  const ring=CI(r,0,0,14,'none','var(--water)',2.5),dot=CI(r,0,0,10,'var(--water)','var(--sheet)',3);dot.style.cursor='grab';
+  const hit=RC(r,c.x,c.y,c.w,c.h,'transparent');hit.style.cursor='grab';r.appendChild(ring);r.appendChild(dot);
+  const st=ctx.explore;
+  const place=()=>{const I=IMP[st.k],H=I.H(st.q);hL.setAttribute('d',`M${c.X(0)} ${c.Y(H)}L${c.X(st.q)} ${c.Y(H)}`);vL.setAttribute('d',`M${c.X(st.q)} ${c.Y(H)}L${c.X(st.q)} ${c.Y(0)}`);for(const e of[dot,ring]){e.setAttribute('cx',c.X(st.q));e.setAttribute('cy',c.Y(H))}
+    for(const k in c.imp){c.imp[k].e.style.strokeWidth=k===st.k?4.5:2.5;c.imp[k].e.style.stroke=k===st.k?'var(--water)':'var(--ink)'}ctx.onExplore&&ctx.onExplore()};
+  const pick=ev=>{const m=r.ownerSVGElement.getScreenCTM().inverse(),pt=new DOMPoint(ev.clientX,ev.clientY).matrixTransform(m);let best=null;for(const k in IMP){const I=IMP[k];for(let q=20;q<=I.qEnd;q+=2){const d=(c.X(q)-pt.x)**2+(c.Y(I.H(q))-pt.y)**2;if(!best||d<best.d)best={d,k,q}}}st.k=best.k;st.q=best.q;place()};
+  let drag=false;for(const e of[hit,dot]){e.style.touchAction='none';e.addEventListener('pointerdown',ev=>{drag=true;e.setPointerCapture(ev.pointerId);pick(ev);ev.preventDefault()});e.addEventListener('pointermove',ev=>{if(drag)pick(ev)});e.addEventListener('pointerup',()=>drag=false);e.addEventListener('pointercancel',()=>drag=false)}
+  ctx.place=place;place();
+  return(t,cl)=>{ring.setAttribute('r',13+3*Math.sin(cl*3));ring.style.opacity=drag?0:.8}}});
+
+const $=id=>document.getElementById(id),stage=$('stage');
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ctx={explore:{k:'6.5',q:175}};
+const P={i:0,t:0,c:0,playing:!reduce,rate:1,draw:null,hold:0};
+SCENES.forEach((s,i)=>{const b=document.createElement('button');b.type='button';b.innerHTML=`<b>${i+1}</b>${s.name}`;b.onclick=()=>{go(i);P.playing=!reduce||false;sync()};$('chapters').appendChild(b)});
+const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
+function explorePanel(host){host.innerHTML=`<p class="note" style="font-size:14px;color:var(--ink);margin:0 0 8px">Drag anywhere on the chart. The dot snaps to the nearest impeller curve and the numbers follow it. The red dashes mark the best efficiency line.</p>
+ <div class="segs" role="group" aria-label="Impeller diameter" style="margin-bottom:8px">${['5','5.5','6','6.5','7'].map(k=>`<button type="button" id="imp-${k.replace('.','_')}" data-k="${k}">${IMP[k].label}</button>`).join('')}</div>
+ <dl class="read"><div><dt>Capacity</dt><dd id="r-q"></dd></div><div><dt>Head</dt><dd id="r-h"></dd></div><div><dt>Efficiency</dt><dd id="r-e"></dd></div><div><dt>Power to liquid, Ẇ</dt><dd id="r-w"></dd></div><div><dt>Power to impeller, bhp</dt><dd id="r-b"></dd></div><div><dt>NPSH required</dt><dd id="r-n"></dd></div></dl>
+ <div style="margin:8px 0"><span class="pill" id="r-p"></span></div>
+ <svg id="mini" viewBox="0 0 320 120" role="img" aria-label="Efficiency against flow for the selected impeller"></svg>
+ <p class="note" style="margin-top:8px">Values come from a hand trace of the slide 142 chart, so they are approximate. Efficiency is read from the trace. Power to liquid is calculated with water at 62.4 lbm/ft³, and bhp is that power divided by efficiency. Below 80 gpm the chart prints no NPSH curve.</p>`;
+ host.querySelectorAll('.segs button').forEach(b=>b.onclick=()=>{const st=ctx.explore;st.k=b.dataset.k;st.q=Math.min(st.q,IMP[st.k].qEnd);ctx.place()});
+ const npf=mono(DATA.npsh);
+ ctx.onExplore=()=>{const{k,q}=ctx.explore,I=IMP[k],H=I.H(q),e=I.eta(q),W=WHP(q,H),off=q/I.bep;
+  $('r-q').innerHTML=Math.round(q)+' <small>gpm</small>';$('r-h').innerHTML=Math.round(H)+' <small>ft</small>';$('r-e').innerHTML='≈'+Math.round(e*100)+' <small>%</small>';$('r-w').innerHTML=W.toFixed(2)+' <small>hp</small>';$('r-b').innerHTML=(W/e).toFixed(1)+' <small>hp</small>';$('r-n').innerHTML=q<79?'– <small>ft</small>':Math.round(npf(q))+' <small>ft</small>';
+  const pill=$('r-p'),pc=Math.abs(off-1);pill.textContent=pc<.08?'Close to the bep':off<1?`${Math.round((1-off)*100)}% below bep flow`:`${Math.round((off-1)*100)}% above bep flow`;pill.style.color=pc<.08?'var(--eff)':pc<.25?'var(--power)':'var(--pressure)';
+  host.querySelectorAll('.segs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===k));
+  const m=$('mini');m.innerHTML='';const X=v=>34+v/350*276,Y=v=>98-v/.8*84;for(const v of[0,.2,.4,.6,.8]){LN(m,34,Y(v),310,Y(v),'var(--grid)',1);TX(m,29,Y(v)+4,Math.round(v*100)+'%',{size:11,anchor:'end'})}for(const v of[0,100,200,300])TX(m,X(v),113,v,{size:11,anchor:'middle'});
+  const pts=[];for(let i=0;i<=60;i++){const qq=I.qEnd*i/60;pts.push([X(qq),Y(I.eta(qq))])}E('path',{d:pathD(pts),stroke:'var(--eff)','stroke-width':2.5},m);CI(m,X(I.bep),Y(I.eta(I.bep)),4,'var(--pressure)');CI(m,X(q),Y(e),6,'var(--water)','var(--sheet)',2);};}
+function go(i,t0=0){P.i=i;P.t=t0;P.hold=0;const s=SCENES[i];stage.innerHTML='';const root=E('g',{},stage);
+ $('eyebrow').textContent=`Chapter ${i+1} of ${SCENES.length} · ${s.slide}`;$('title').textContent=s.title;
+ const body=$('panelbody');body.innerHTML='';ctx.onExplore=null;
+ if(s.free){explorePanel(body)}else{const ol=document.createElement('ol');ol.id='cues';s.cues.forEach((q,k)=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.innerHTML=q.h;b.onclick=()=>{P.t=q.t;P.hold=0;render(0)};li.appendChild(b);ol.appendChild(li)});body.appendChild(ol)}
+ P.draw=s.build(root,ctx);$('transport').hidden=!!s.free;
+ $('ticks').innerHTML=s.cues.map(q=>`<i style="left:${q.t/s.dur*100}%"></i>`).join('');
+ [...$('chapters').children].forEach((b,k)=>{const on=k===i;if(on)b.setAttribute('aria-current','true');else b.removeAttribute('aria-current');if(on){const n=$('chapters');n.scrollLeft=b.offsetLeft-n.offsetLeft-(n.clientWidth-b.offsetWidth)/2}});
+ try{location.replace('#'+s.id)}catch(e){}
+ P.lastCue=-1;render(0);sync()}
+function render(){const s=SCENES[P.i];P.draw(P.t,P.c);if(s.free)return;
+ $('scrub').value=Math.round(P.t/s.dur*1000);$('time').textContent=fmt(P.t)+' / '+fmt(s.dur);
+ let k=0;s.cues.forEach((q,i)=>{if(P.t>=q.t)k=i});
+ if(k!==P.lastCue){P.lastCue=k;const ol=$('cues');[...ol.children].forEach((li,i)=>{li.className=i<k?'past':i===k?'now':''});
+  if(ol.scrollHeight>ol.clientHeight+2){const li=ol.children[k];ol.scrollTop=li.offsetTop-ol.offsetTop-12}}}
+function sync(){$('play').textContent=P.playing?'Pause':'Play'}
+let last=performance.now();
+function frame(now){const dt=Math.min(.1,(now-last)/1000);last=now;const s=SCENES[P.i];
+ if(s.free){if(!reduce)P.c+=dt;P.draw(1,P.c)}
+ else if(P.playing){P.c+=dt*P.rate;
+  if(P.t<s.dur){P.t=Math.min(s.dur,P.t+dt*P.rate)}else{P.hold+=dt;if(P.hold>1.6&&P.i<SCENES.length-1)go(P.i+1)}
+  render()}
+ requestAnimationFrame(frame)}
+$('play').onclick=()=>{const s=SCENES[P.i];if(!P.playing&&P.t>=s.dur)P.t=0;P.playing=!P.playing;sync()};
+$('prev').onclick=()=>go(Math.max(0,P.i-1));$('next').onclick=()=>go(Math.min(SCENES.length-1,P.i+1));
+$('again').onclick=()=>{P.t=0;P.hold=0;P.playing=true;sync();render()};
+const rates=[1,1.5,.75];$('speed').onclick=()=>{P.rate=rates[(rates.indexOf(P.rate)+1)%3];$('speed').textContent=P.rate+'×'};
+$('scrub').oninput=e=>{const s=SCENES[P.i];P.t=e.target.value/1000*s.dur;P.hold=0;P.playing=false;sync();render()};
+addEventListener('keydown',e=>{if(e.target.matches('input,button')&&e.code!=='ArrowLeft'&&e.code!=='ArrowRight')return;if(SCENES[P.i].free)return;
+ if(e.code==='Space'){e.preventDefault();$('play').click()}else if(e.code==='ArrowRight'&&e.target.id!=='scrub'){P.t=Math.min(SCENES[P.i].dur,P.t+5);render()}else if(e.code==='ArrowLeft'&&e.target.id!=='scrub'){P.t=Math.max(0,P.t-5);P.hold=0;render()}});
+const fromHash=()=>Math.max(0,SCENES.findIndex(s=>'#'+s.id===location.hash));
+addEventListener('hashchange',()=>{const i=fromHash();if(i!==P.i)go(i)});
+/* expose a seek for the viewer's scrubbing and for checks */
+window.pumpSeek=(i,t)=>{P.playing=false;if(i!==P.i)go(i);P.t=t;P.c=t;render();sync()};
+const startI=fromHash();go(startI);
+if(reduce){P.t=SCENES[startI].free?0:SCENES[startI].dur;P.c=2;render()}
+requestAnimationFrame(frame);
+
+
+</script>
+
+</body></html>
